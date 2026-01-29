@@ -47,7 +47,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String nullEmailUser = "{\n" + """"
+        String nullEmailUser = "{\n" + """
                 email": null,
                 "login": "testUser"
                 }
