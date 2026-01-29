@@ -24,6 +24,6 @@ public class User {
 
     @Past(message = "Поле дата_рождения должно быть раньше текущей даты",
             groups = {Create.class, Update.class})
-    @JsonFormat(pattern = "dd.MM.yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate birthday;
 }

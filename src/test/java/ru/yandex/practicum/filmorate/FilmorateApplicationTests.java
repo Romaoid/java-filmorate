@@ -151,9 +151,9 @@ class FilmorateApplicationTests {
 
     @Test
     void boundary_value_tests_birthday() throws Exception {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        String tomorrowDate = LocalDate.now().plusDays(1).format(formatter);
+        String tomorrowDate = LocalDate.now().plusDays(1).format(formatterDate);
         String userFromFuture = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
@@ -166,7 +166,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String todayDate = LocalDate.now().format(formatter);
+        String todayDate = LocalDate.now().format(formatterDate);
         String userBirthToday = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
@@ -179,7 +179,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String yesterdayDate = LocalDate.now().minusDays(1).format(formatter);
+        String yesterdayDate = LocalDate.now().minusDays(1).format(formatterDate);
         String userBirthYesterday = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
@@ -216,7 +216,7 @@ class FilmorateApplicationTests {
 
         String userBirthInPast = "{\n" + """
                     "id": 1,
-                    "birthday": "10.10.1990"
+                    "birthday": "1990-10-10"
                 }
                 """;
 
@@ -243,7 +243,7 @@ class FilmorateApplicationTests {
     void invalid_tests_add_film() throws Exception {
         String blankFilmName = "{\n" + """
                     "name": "",
-                    "releaseDate": "10.10.2010"
+                    "releaseDate": "2010-10-10"
                 }
                 """;
 
@@ -254,7 +254,7 @@ class FilmorateApplicationTests {
 
         String nullFilmName = "{\n" + """
                     "name": null,
-                    "releaseDate": "10.10.2010"
+                    "releaseDate": "2010-10-10"
                 }
                 """;
 
@@ -283,7 +283,7 @@ class FilmorateApplicationTests {
 
         String filmWithValidDescription = "{\n" + """
                     "name": "test1",
-                    "releaseDate": "10.10.2010",
+                    "releaseDate": "2010-10-10",
                     "description": "%s"
                 }
                 """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 200));
@@ -295,7 +295,7 @@ class FilmorateApplicationTests {
 
         String anotherFilmWithValidDescription = "{\n" + """
                     "name": "test2",
-                    "releaseDate": "10.10.2011",
+                    "releaseDate": "2011-10-10",
                     "description": "%s"
                 }
                 """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 199));
@@ -354,7 +354,7 @@ class FilmorateApplicationTests {
     void boundary_value_tests_releaseDate() throws Exception {
         String filmWithValidReleaseDate = "{\n" + """
                     "name": "test1",
-                    "releaseDate": "29.12.1895"
+                    "releaseDate": "1895-12-29"
                 }
                 """;
 
@@ -365,7 +365,7 @@ class FilmorateApplicationTests {
 
         filmWithValidReleaseDate = "{\n" + """
                     "name": "test2",
-                    "releaseDate": "28.12.1895"
+                    "releaseDate": "1895-12-28"
                 }
                 """;
 
@@ -376,7 +376,7 @@ class FilmorateApplicationTests {
 
         filmWithValidReleaseDate = "{\n" + """
                     "id": 1,
-                    "releaseDate": "28.12.1895"
+                    "releaseDate": "1895-12-28"
                 }
                 """;
 
@@ -387,7 +387,7 @@ class FilmorateApplicationTests {
 
         filmWithValidReleaseDate = "{\n" + """
                     "id": 2,
-                    "releaseDate": "29.12.1895"
+                    "releaseDate": "1895-12-29"
                 }
                 """;
 
@@ -422,7 +422,7 @@ class FilmorateApplicationTests {
 
         String filmWithValidDuration = "{\n" + """
                     "name": "test1",
-                    "releaseDate": "29.12.1895",
+                    "releaseDate": "1895-12-29",
                     "duration": "0:00:01"
                 }
                 """;

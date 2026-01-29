@@ -21,7 +21,7 @@ public class Film {
     String description;
 
     @NotNull(message = "Поле дата_релиза обязательное", groups = {Create.class})
-    @JsonFormat(pattern = "dd.MM.yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate releaseDate;
 
     @JsonFormat(pattern = "H:mm:ss")
