@@ -38,21 +38,18 @@ class FilmorateApplicationTests {
     //User validation tests
     @Test
     void invalid_tests_add_user() throws Exception {
-        String invalidEmailUser = """
-                {
-                    "email": "@test.ru",
-                    "login": "testUser"
-                }
-                """;
+        String invalidEmailUser = "{\n " +
+                "\"email\": \"@test.ru\",\n" +
+                "\"login\": \"testUser\"\n" +
+                "}";
         mockMvc.perform(MockMvcRequestBuilders.post("/users")
                         .content(invalidEmailUser)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String nullEmailUser = """
-                {
-                    "email": null,
-                    "login": "testUser"
+        String nullEmailUser = "{\n" + """"
+                email": null,
+                "login": "testUser"
                 }
                 """;
         mockMvc.perform(MockMvcRequestBuilders.post("/users")
@@ -60,19 +57,17 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String nullLoginUser = """
-                {
+        String nullLoginUser = "{\n" + """
                     "email": "test@test.ru",
                     "login": null
-                }
-                """;
+                    }
+                    """;
         mockMvc.perform(MockMvcRequestBuilders.post("/users")
                         .content(nullLoginUser)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String loginUserWithSpaseChar = """
-                {
+        String loginUserWithSpaseChar = "{\n" + """
                     "email": "test@test.ru",
                     "login": "test Us er"
                 }
@@ -82,8 +77,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String userFromFuture = """
-                {
+        String userFromFuture = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
                     "birthday": "10.10.2030"
@@ -160,8 +154,7 @@ class FilmorateApplicationTests {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
         String tomorrowDate = LocalDate.now().plusDays(1).format(formatter);
-        String userFromFuture = """
-                {
+        String userFromFuture = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
                     "birthday": "%s"
@@ -174,8 +167,7 @@ class FilmorateApplicationTests {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         String todayDate = LocalDate.now().format(formatter);
-        String userBirthToday = """
-                {
+        String userBirthToday = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
                     "birthday": "%s"
@@ -188,8 +180,7 @@ class FilmorateApplicationTests {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         String yesterdayDate = LocalDate.now().minusDays(1).format(formatter);
-        String userBirthYesterday = """
-                {
+        String userBirthYesterday = "{\n" + """
                     "email": "test@test.ru",
                     "login": "testUser",
                     "birthday": "%s"
@@ -201,8 +192,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        userFromFuture = """
-                {
+        userFromFuture = "{\n" + """
                     "id": 1,
                     "birthday": "%s"
                 }
@@ -213,8 +203,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        userBirthToday = """
-                {
+        userBirthToday = "{\n" + """
                     "id": 1,
                     "birthday": "%s"
                 }
@@ -225,8 +214,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String userBirthInPast = """
-                {
+        String userBirthInPast = "{\n" + """
                     "id": 1,
                     "birthday": "10.10.1990"
                 }
@@ -237,8 +225,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        userBirthYesterday = """
-                {
+        userBirthYesterday = "{\n" + """
                     "id": 1,
                     "birthday": "%s"
                 }
@@ -254,8 +241,7 @@ class FilmorateApplicationTests {
     //Film validation tests
     @Test
     void invalid_tests_add_film() throws Exception {
-        String blankFilmName = """
-                {
+        String blankFilmName = "{\n" + """
                     "name": "",
                     "releaseDate": "10.10.2010"
                 }
@@ -266,8 +252,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String nullFilmName = """
-                {
+        String nullFilmName = "{\n" + """
                     "name": null,
                     "releaseDate": "10.10.2010"
                 }
@@ -278,8 +263,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        String nullFilmReleaseDate = """
-                {
+        String nullFilmReleaseDate = "{\n" + """
                     "name": "test",
                     "releaseDate": null
                 }
@@ -297,8 +281,7 @@ class FilmorateApplicationTests {
                 "far from the countries Vokalia and Consonantia, there live the blind texts. " +
                 "Separated they live in Bookmarksgrove right at the coast of the Semantics, a large. ";
 
-        String filmWithValidDescription = """
-                {
+        String filmWithValidDescription = "{\n" + """
                     "name": "test1",
                     "releaseDate": "10.10.2010",
                     "description": "%s"
@@ -310,8 +293,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        String anotherFilmWithValidDescription = """
-                {
+        String anotherFilmWithValidDescription = "{\n" + """
                     "name": "test2",
                     "releaseDate": "10.10.2011",
                     "description": "%s"
@@ -333,8 +315,7 @@ class FilmorateApplicationTests {
         });
         assertEquals("Поле описание должно быть не более 200 символов", exception.getMessage());
 
-        String validDescription = """
-                {
+        String validDescription = "{\n" + """
                     "id": "2",
                     "description": "%s"
                 }
@@ -345,8 +326,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        String validDescriptionAnother = """
-                {
+        String validDescriptionAnother = "{\n" + """
                     "id": "1",
                     "description": "%s"
                 }
@@ -372,8 +352,7 @@ class FilmorateApplicationTests {
 
     @Test
     void boundary_value_tests_releaseDate() throws Exception {
-        String filmWithValidReleaseDate = """
-                {
+        String filmWithValidReleaseDate = "{\n" + """
                     "name": "test1",
                     "releaseDate": "29.12.1895"
                 }
@@ -384,8 +363,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        filmWithValidReleaseDate = """
-                {
+        filmWithValidReleaseDate = "{\n" + """
                     "name": "test2",
                     "releaseDate": "28.12.1895"
                 }
@@ -396,8 +374,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        filmWithValidReleaseDate = """
-                {
+        filmWithValidReleaseDate = "{\n" + """
                     "id": 1,
                     "releaseDate": "28.12.1895"
                 }
@@ -408,8 +385,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        filmWithValidReleaseDate = """
-                {
+        filmWithValidReleaseDate = "{\n" + """
                     "id": 2,
                     "releaseDate": "29.12.1895"
                 }
@@ -444,8 +420,7 @@ class FilmorateApplicationTests {
     @Test
     void boundary_value_tests_duration() throws Exception {
 
-        String filmWithValidDuration = """
-                {
+        String filmWithValidDuration = "{\n" + """
                     "name": "test1",
                     "releaseDate": "29.12.1895",
                     "duration": "0:00:01"
@@ -457,8 +432,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        filmWithValidDuration = """
-                {
+        filmWithValidDuration = "{\n" + """
                     "id": 1,
                     "duration": "9:30:59"
                 }
@@ -469,8 +443,7 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        filmWithValidDuration = """
-                {
+        filmWithValidDuration = "{\n" + """
                     "id": 1,
                     "duration": "0:00:01"
                 }
