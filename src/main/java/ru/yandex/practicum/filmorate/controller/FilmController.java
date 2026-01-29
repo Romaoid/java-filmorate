@@ -23,7 +23,6 @@ import java.util.Map;
 public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
     private static final LocalDate FIRST_FILM_RELEASE_DATE = LocalDate.of(1895, 12, 28);
-    private static final LocalTime MINIMUM_DURATION_OF_FILM = LocalTime.of(0, 0, 1);
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -43,8 +42,8 @@ public class FilmController {
         if (newFilm.getDescription() != null && newFilm.getDescription().length() > 200) {
             throw new NotValidException("Поле описание должно быть не более 200 символов");
         }
-        if (newFilm.getDuration() != null && newFilm.getDuration().isBefore(MINIMUM_DURATION_OF_FILM)) {
-            throw new NotValidException("Ошибка добавления фильма. Поле продолжительность должно быть больше ноля");
+        if (newFilm.getDuration() != null && newFilm.getDuration() < 0) {
+            log.error("Поле продолжительность должно быть больше ноля");
         }
 
         for (Film film : films.values()) {
@@ -112,9 +111,8 @@ public class FilmController {
                 oldFilm.setDescription(newFilm.getDescription());
             }
             if (newFilm.getDuration() != null) {
-                if (newFilm.getDuration().isBefore(MINIMUM_DURATION_OF_FILM)) {
-                    throw new NotValidException("Ошибка добавления фильма. "
-                            + "Поле продолжительность должно быть больше ноля");
+                if (newFilm.getDuration() < 0) {
+                    log.error("Поле продолжительность должно быть больше ноля");
                 }
                 log.debug("Успешное редактирование фильма {}. Значение поля продолжительность: {}, заменено на {}",
                         newFilm.getId(), oldFilm.getDuration(), newFilm.getDuration());

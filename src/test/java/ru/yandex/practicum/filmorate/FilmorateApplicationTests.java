@@ -423,7 +423,7 @@ class FilmorateApplicationTests {
         String filmWithValidDuration = "{\n" + """
                     "name": "test1",
                     "releaseDate": "1895-12-29",
-                    "duration": "0:00:01"
+                    "duration": 1
                 }
                 """;
 
@@ -434,7 +434,7 @@ class FilmorateApplicationTests {
 
         filmWithValidDuration = "{\n" + """
                     "id": 1,
-                    "duration": "9:30:59"
+                    "duration": 100
                 }
                 """;
 
@@ -445,7 +445,7 @@ class FilmorateApplicationTests {
 
         filmWithValidDuration = "{\n" + """
                     "id": 1,
-                    "duration": "0:00:01"
+                    "duration": 1
                 }
                 """;
 
@@ -454,30 +454,15 @@ class FilmorateApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        FilmController controller = new FilmController();
-        Film film = new Film();
-        film.setName("test3");
-        film.setReleaseDate(LocalDate.of(1995, 12, 27));
-        film.setDuration(LocalTime.of(0, 0, 0));
-        Exception exception = assertThrows(NotValidException.class, () -> {
-            controller.create(film);
-        });
-        assertEquals("Ошибка добавления фильма. Поле продолжительность должно быть больше ноля",
-                exception.getMessage());
+        filmWithValidDuration = "{\n" + """
+                    "id": 1,
+                    "duration": -1
+                }
+                """;
 
-        film.setDuration(LocalTime.of(0, 0, 1));
-        controller.create(film);
-
-        Film invalidFilm = new Film();
-        invalidFilm.setId(1L);
-        invalidFilm.setDuration(LocalTime.of(0, 0, 0));
-        exception = assertThrows(NotValidException.class, () -> {
-            controller.update(invalidFilm);
-        });
-        assertEquals("Ошибка добавления фильма. Поле продолжительность должно быть больше ноля",
-                exception.getMessage());
-
-        invalidFilm.setDuration(LocalTime.of(6, 12, 54));
-        controller.update(invalidFilm);
+        mockMvc.perform(MockMvcRequestBuilders.put("/films")
+                        .content(filmWithValidDuration)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
     }
 }
