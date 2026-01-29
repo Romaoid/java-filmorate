@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +9,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.NotValidException;
 import ru.yandex.practicum.filmorate.model.Create;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Update;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -22,8 +22,8 @@ import java.util.Map;
 @RequestMapping("/films")
 public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
-    private final static LocalDate firstFilmReleaseDate = LocalDate.of(1895, 12, 28);
-    private final static LocalTime minDurationOfFilm = LocalTime.of(0,0,1);
+    private static final LocalDate FIRST_FILM_RELEASE_DATE = LocalDate.of(1895, 12, 28);
+    private static final LocalTime MINIMUM_DURATION_OF_FILM = LocalTime.of(0, 0, 1);
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -37,13 +37,13 @@ public class FilmController {
         if (newFilm.getName() == null || newFilm.getName().isBlank()) {
             log.error("Ошибка добавления фильма. Поле имя отсутствует или пусто");
         }
-        if (newFilm.getReleaseDate().isBefore(firstFilmReleaseDate)) {
+        if (newFilm.getReleaseDate().isBefore(FIRST_FILM_RELEASE_DATE)) {
             throw new NotValidException("Значение поля дата_релиза должно быть позже 28.12.1895");
         }
         if (newFilm.getDescription() != null && newFilm.getDescription().length() > 200) {
             throw new NotValidException("Поле описание должно быть не более 200 символов");
         }
-        if (newFilm.getDuration() != null && newFilm.getDuration().isBefore(minDurationOfFilm)) {
+        if (newFilm.getDuration() != null && newFilm.getDuration().isBefore(MINIMUM_DURATION_OF_FILM)) {
             throw new NotValidException("Ошибка добавления фильма. Поле продолжительность должно быть больше ноля");
         }
 
@@ -71,13 +71,13 @@ public class FilmController {
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody Film newFilm) {
+    public Film update(@Validated(Update.class) @RequestBody Film newFilm) {
         log.debug("Запрос на редактирование пользователя {}", newFilm);
         if (newFilm.getId() == null) {
             throw new ConditionsNotMetException("Id должен быть указан");
         }
 
-        if (newFilm.getReleaseDate() != null && newFilm.getReleaseDate().isBefore(firstFilmReleaseDate)) {
+        if (newFilm.getReleaseDate() != null && newFilm.getReleaseDate().isBefore(FIRST_FILM_RELEASE_DATE)) {
             throw new NotValidException("Значение поля дата_релиза должно быть позже 28.12.1895");
         }
 
@@ -96,7 +96,7 @@ public class FilmController {
                 oldFilm.setName(newFilm.getName());
             }
             if (newFilm.getReleaseDate() != null) {
-                if (newFilm.getReleaseDate().isBefore(firstFilmReleaseDate)) {
+                if (newFilm.getReleaseDate().isBefore(FIRST_FILM_RELEASE_DATE)) {
                     throw new NotValidException("Значение поля дата_релиза должно быть позже 28.12.1895");
                 }
                 log.debug("Успешное редактирование фильма {}. Значение поля дата_релиза: {}, заменено на {}",
@@ -112,9 +112,9 @@ public class FilmController {
                 oldFilm.setDescription(newFilm.getDescription());
             }
             if (newFilm.getDuration() != null) {
-                if (newFilm.getDuration().isBefore(minDurationOfFilm)) {
-                    throw new NotValidException("Ошибка добавления фильма. " +
-                            "Поле продолжительность должно быть больше ноля");
+                if (newFilm.getDuration().isBefore(MINIMUM_DURATION_OF_FILM)) {
+                    throw new NotValidException("Ошибка добавления фильма. "
+                            + "Поле продолжительность должно быть больше ноля");
                 }
                 log.debug("Успешное редактирование фильма {}. Значение поля продолжительность: {}, заменено на {}",
                         newFilm.getId(), oldFilm.getDuration(), newFilm.getDuration());

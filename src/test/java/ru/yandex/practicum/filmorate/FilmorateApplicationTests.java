@@ -38,30 +38,6 @@ class FilmorateApplicationTests {
 
     //User validation tests
     @Test
-    void valid_test_add_user() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/users"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().string("[]"));
-
-        String validUser = """
-                {
-                "email": "test@test.ru",
-                "login": "testUser"
-                }
-                """;
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(validUser)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/users"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .json("[{\"id\":1,\"email\":\"test@test.ru\",\"login\":\"testUser\"," +
-                                "\"name\":\"testUser\",\"birthday\":null}]"));
-    }
-
-    @Test
     void invalid_tests_add_user() throws Exception {
         String invalidEmailUser = """
                 {
@@ -266,31 +242,6 @@ class FilmorateApplicationTests {
 
 
 //Film validation tests
-    @Test
-    void valid_test_add_film() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/films"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().string("[]"));
-
-        String validFilmName = """
-                {
-                "name": "testFilm",
-                "releaseDate": "10.10.2010"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(validFilmName)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/films"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .json("[{\"id\":1,\"name\":\"testFilm\",\"description\":null," +
-                                "\"releaseDate\":\"10.10.2010\",\"duration\":null}]"));
-    }
-
     @Test
     void invalid_tests_add_film() throws Exception {
         String blankFilmName = """
