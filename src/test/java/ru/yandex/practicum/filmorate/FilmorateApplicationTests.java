@@ -1,113 +1,80 @@
 package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.boot.test.context.SpringBootTest;
 import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.exception.ConditionsNotMetException;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.NotValidException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
-//@SpringBootTest
-@WebMvcTest
-@AutoConfigureMockMvc
+@SpringBootTest
 class FilmorateApplicationTests {
-    @Autowired
-    private MockMvc mockMvc;
-
     @Test
     void contextLoads() {
     }
 
     //User validation tests
     @Test
-    void invalid_tests_add_user() throws Exception {
-        String invalidEmailUser = "{\n " +
-                "\"email\": \"@test.ru\",\n" +
-                "\"login\": \"testUser\"\n" +
-                "}";
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(invalidEmailUser)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        String nullEmailUser = "{\n" + """
-                email": null,
-                "login": "testUser"
-                }
-                """;
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(nullEmailUser)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        String nullLoginUser = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": null
-                    }
-                    """;
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(nullLoginUser)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        String loginUserWithSpaseChar = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": "test Us er"
-                }
-                """;
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(loginUserWithSpaseChar)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        String userFromFuture = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": "testUser",
-                    "birthday": "10.10.2030"
-                }
-                """;
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(userFromFuture)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
+    void valid_test_add_user() {
         UserController controller = new UserController();
-        User user1 = new User();
-        user1.setLogin("testLogin");
-        user1.setEmail("test@email.com");
-        controller.create(user1);
+        User user = new User();
+        user.setLogin("testLogin");
+        user.setEmail("test@test.com");
 
+        User createdUser = controller.create(user);
+        assertEquals(createdUser.getLogin(), createdUser.getName());
+    }
+
+    @Test
+    void invalid_tests_add_user() {
+        UserController controller = new UserController();
+
+        //login == null
+        User user1 = new User();
+
+        Exception exception = assertThrows(NotValidException.class, () -> {
+            controller.create(user1);
+        });
+        assertEquals("Поле логин не должно быть пустым", exception.getMessage());
+
+        //login with spase
+        user1.setLogin("test Login");
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.create(user1);
+        });
+        assertEquals("Поле логин не должно содержать символы пробела", exception.getMessage());
+
+        //email without username
+        user1.setLogin("testLogin");
+        user1.setEmail("@email.com");
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.create(user1);
+        });
+        assertEquals("Поле имейл должно содержать буквы латинского алфавита, цифры и знак \"@\". " +
+                "Пример: example@domain.com", exception.getMessage());
+
+        //email without username and domain name
+        user1.setEmail("@");
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.create(user1);
+        });
+        assertEquals("Поле имейл должно содержать буквы латинского алфавита, цифры и знак \"@\". " +
+                        "Пример: example@domain.com", exception.getMessage());
+
+        //email == null
         User user2 = new User();
         user2.setLogin("testLogin");
-        user2.setEmail("another@email.com");
-        Exception exception = assertThrows(DuplicatedDataException.class, () -> {
+        exception = assertThrows(NotValidException.class, () -> {
             controller.create(user2);
         });
-        assertEquals("Этот логин уже используется", exception.getMessage());
-
-        User user3 = new User();
-        user3.setLogin("AnotherLogin");
-        user3.setEmail("test@email.com");
-        exception = assertThrows(DuplicatedDataException.class, () -> {
-            controller.create(user3);
-        });
-        assertEquals("Этот имейл уже используется", exception.getMessage());
+        assertEquals("Поле имейл не должно быть пустым", exception.getMessage());
     }
 
     @Test
@@ -119,18 +86,17 @@ class FilmorateApplicationTests {
         controller.create(user1);
 
         User user2 = new User();
-        user2.setLogin("testLogin");
-        user2.setEmail("another@email.com");
+        user2.setLogin("test Login");
         Exception exception = assertThrows(ConditionsNotMetException.class, () -> {
             controller.update(user2);
         });
         assertEquals("Id должен быть указан", exception.getMessage());
 
         user2.setId(1L);
-        exception = assertThrows(DuplicatedDataException.class, () -> {
+        exception = assertThrows(NotValidException.class, () -> {
             controller.update(user2);
         });
-        assertEquals("Этот логин уже используется", exception.getMessage());
+        assertEquals("Поле логин не должно содержать символы пробела", exception.getMessage());
 
         User user3 = new User();
         user3.setId(2L);
@@ -141,327 +107,247 @@ class FilmorateApplicationTests {
         assertEquals("Пользователь с id = 2 не найден", exception.getMessage());
 
         user3.setId(1L);
-        user3.setEmail("test@email.com");
-        exception = assertThrows(DuplicatedDataException.class, () -> {
+        user3.setEmail("@email.com");
+        exception = assertThrows(NotValidException.class, () -> {
             controller.update(user3);
         });
-        assertEquals("Этот имейл уже используется", exception.getMessage());
+        assertEquals("Поле имейл должно содержать буквы латинского алфавита, цифры и знак \"@\". " +
+                "Пример: example@domain.com", exception.getMessage());
     }
 
     @Test
-    void boundary_value_tests_birthday() throws Exception {
-        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    void boundary_value_tests_birthday() {
+        UserController controller = new UserController();
 
-        String tomorrowDate = LocalDate.now().plusDays(1).format(formatterDate);
-        String userFromFuture = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": "testUser",
-                    "birthday": "%s"
-                }
-                """.formatted(tomorrowDate);
+        User validUser1 = new User();
+        validUser1.setLogin("testLogin");
+        validUser1.setEmail("test@email.com");
+        validUser1.setBirthday(LocalDate.now());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(userFromFuture)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        User validUser2 = new User();
+        validUser2.setLogin("testLogin");
+        validUser2.setEmail("test@email.com");
+        validUser2.setBirthday(LocalDate.now().minusDays(1));
 
-        String todayDate = LocalDate.now().format(formatterDate);
-        String userBirthToday = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": "testUser",
-                    "birthday": "%s"
-                }
-                """.formatted(todayDate);
+        User invalidUser = new User();
+        invalidUser.setLogin("testLogin");
+        invalidUser.setEmail("test@email.com");
+        invalidUser.setBirthday(LocalDate.now().plusDays(1));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(userBirthToday)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        controller.create(validUser1);
+        controller.create(validUser2);
 
-        String yesterdayDate = LocalDate.now().minusDays(1).format(formatterDate);
-        String userBirthYesterday = "{\n" + """
-                    "email": "test@test.ru",
-                    "login": "testUser",
-                    "birthday": "%s"
-                }
-                """.formatted(yesterdayDate);
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-                        .content(userBirthYesterday)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        userFromFuture = "{\n" + """
-                    "id": 1,
-                    "birthday": "%s"
-                }
-                """.formatted(tomorrowDate);
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
-                        .content(userFromFuture)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        userBirthToday = "{\n" + """
-                    "id": 1,
-                    "birthday": "%s"
-                }
-                """.formatted(todayDate);
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
-                        .content(userBirthToday)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-
-        String userBirthInPast = "{\n" + """
-                    "id": 1,
-                    "birthday": "1990-10-10"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
-                        .content(userBirthInPast)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        userBirthYesterday = "{\n" + """
-                    "id": 1,
-                    "birthday": "%s"
-                }
-                """.formatted(yesterdayDate);
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/users")
-                        .content(userBirthYesterday)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        Exception exception = assertThrows(NotValidException.class, () -> {
+            controller.create(invalidUser);
+        });
+        assertEquals("Значение поля дата_рождения должно быть раньше текущей даты", exception.getMessage());
     }
-
 
     //Film validation tests
     @Test
-    void invalid_tests_add_film() throws Exception {
-        String blankFilmName = "{\n" + """
-                    "name": "",
-                    "releaseDate": "2010-10-10"
-                }
-                """;
+    void invalid_tests_film() {
+        FilmController controller = new FilmController();
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(blankFilmName)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        //create film name == null
+        Film film1 = new Film();
 
-        String nullFilmName = "{\n" + """
-                    "name": null,
-                    "releaseDate": "2010-10-10"
-                }
-                """;
+        Exception exception = assertThrows(NotValidException.class, () -> {
+            controller.create(film1);
+        });
+        assertEquals("Поле имя не должно быть пустым", exception.getMessage());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(nullFilmName)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        //update film id == null
+        film1.setName("testFilm");
+        controller.create(film1);
 
-        String nullFilmReleaseDate = "{\n" + """
-                    "name": "test",
-                    "releaseDate": null
-                }
-                """;
+        Film film = new Film();
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(nullFilmReleaseDate)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        exception = assertThrows(ConditionsNotMetException.class, () -> {
+            controller.update(film);
+        });
+        assertEquals("Поле id не должно быть пустым", exception.getMessage());
+
+        //update film id not exist
+        film.setId(2L);
+
+        exception = assertThrows(NotFoundException.class, () -> {
+            controller.update(film);
+        });
+        assertEquals("Фильм с id = 2 не найден", exception.getMessage());
     }
 
     @Test
-    void boundary_value_tests_description() throws Exception {
-        String maxLengthDescriptionPlusOneMoreLetter = "Far far away, behind the word mountains, " +
+    void boundary_value_tests_description() {
+        FilmController controller = new FilmController();
+
+        String someText = "Far far away, behind the word mountains, " +
                 "far from the countries Vokalia and Consonantia, there live the blind texts. " +
                 "Separated they live in Bookmarksgrove right at the coast of the Semantics, a large. ";
 
-        String filmWithValidDescription = "{\n" + """
-                    "name": "test1",
-                    "releaseDate": "2010-10-10",
-                    "description": "%s"
-                }
-                """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 200));
+        String invalidDescription = someText.substring(0, 201);
+        String maxLengthDescription = someText.substring(0, 200);
+        String validDescription = someText.substring(0, 199);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(filmWithValidDescription)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        //create boundary value -1 (id = 1)
+        Film validFilm1 = new Film();
+        validFilm1.setName("test");
+        validFilm1.setDescription(validDescription);
 
-        String anotherFilmWithValidDescription = "{\n" + """
-                    "name": "test2",
-                    "releaseDate": "2011-10-10",
-                    "description": "%s"
-                }
-                """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 199));
+        Film createdFilm1 = controller.create(validFilm1);
+        assertEquals(validDescription, createdFilm1.getDescription());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(anotherFilmWithValidDescription)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        //create boundary value 0 (id = 2)
+        Film validFilm2 = new Film();
+        validFilm2.setName("test");
+        validFilm2.setDescription(maxLengthDescription);
 
-        FilmController controller = new FilmController();
-        Film film = new Film();
-        film.setName("test3");
-        film.setReleaseDate(LocalDate.of(2012, 10, 10));
-        film.setDescription(maxLengthDescriptionPlusOneMoreLetter);
+        Film createdFilm2 = controller.create(validFilm2);
+        assertEquals(maxLengthDescription, createdFilm2.getDescription());
+
+        //create boundary value +1
+        Film invalidFilm = new Film();
+        invalidFilm.setName("test");
+        invalidFilm.setDescription(invalidDescription);
+
         Exception exception = assertThrows(NotValidException.class, () -> {
-            controller.create(film);
+            controller.create(invalidFilm);
         });
         assertEquals("Поле описание должно быть не более 200 символов", exception.getMessage());
 
-        String validDescription = "{\n" + """
-                    "id": "2",
-                    "description": "%s"
-                }
-                """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 200));
+        //update boundary value 0
+        Film validUpdateFilm1 = new Film();
+        validUpdateFilm1.setId(1L);
+        validUpdateFilm1.setDescription(maxLengthDescription);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(validDescription)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        Film updatedFilm1 = controller.update(validUpdateFilm1);
+        assertEquals(maxLengthDescription, updatedFilm1.getDescription());
 
-        String validDescriptionAnother = "{\n" + """
-                    "id": "1",
-                    "description": "%s"
-                }
-                """.formatted(maxLengthDescriptionPlusOneMoreLetter.substring(0, 199));
+        //update boundary value -1
+        Film validUpdateFilm2 = new Film();
+        validUpdateFilm2.setId(2L);
+        validUpdateFilm2.setDescription(validDescription);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(validDescriptionAnother)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        Film updatedFilm2 = controller.update(validUpdateFilm2);
+        assertEquals(validDescription, updatedFilm2.getDescription());
 
-        Film testFilm = new Film();
-        testFilm.setName("test");
-        testFilm.setReleaseDate(LocalDate.of(2012, 10, 10));
-        testFilm.setDescription(maxLengthDescriptionPlusOneMoreLetter.substring(0, 199));
-        controller.create(testFilm);
+        //update boundary value +1
+        invalidFilm.setId(1L);
 
-        film.setId(1L);
         exception = assertThrows(NotValidException.class, () -> {
-            controller.update(film);
+            controller.update(invalidFilm);
         });
         assertEquals("Поле описание должно быть не более 200 символов", exception.getMessage());
     }
 
     @Test
-    void boundary_value_tests_releaseDate() throws Exception {
-        String filmWithValidReleaseDate = "{\n" + """
-                    "name": "test1",
-                    "releaseDate": "1895-12-29"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(filmWithValidReleaseDate)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        filmWithValidReleaseDate = "{\n" + """
-                    "name": "test2",
-                    "releaseDate": "1895-12-28"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(filmWithValidReleaseDate)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        filmWithValidReleaseDate = "{\n" + """
-                    "id": 1,
-                    "releaseDate": "1895-12-28"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(filmWithValidReleaseDate)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        filmWithValidReleaseDate = "{\n" + """
-                    "id": 2,
-                    "releaseDate": "1895-12-29"
-                }
-                """;
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(filmWithValidReleaseDate)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
+    void boundary_value_tests_releaseDate() {
         FilmController controller = new FilmController();
-        Film film = new Film();
-        film.setName("test3");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27));
+        LocalDate firstMovieReleaseDate = LocalDate.of(1895, 12, 28);
+        //create valid boundary value 0 (id = 1)
+        Film validFilm1 = new Film();
+        validFilm1.setName("test3");
+        validFilm1.setReleaseDate(firstMovieReleaseDate);
+
+        Film createdFilm1 = controller.create(validFilm1);
+        assertEquals(firstMovieReleaseDate, createdFilm1.getReleaseDate());
+
+        //create valid boundary value +1 (id = 2)
+        Film validFilm2 = new Film();
+        validFilm2.setName("test3");
+        validFilm2.setReleaseDate(firstMovieReleaseDate.plusDays(1));
+
+        Film createdFilm2 = controller.create(validFilm2);
+        assertEquals(LocalDate.of(1895, 12, 29), createdFilm2.getReleaseDate());
+
+        //create invalid boundary value -1
+        Film invalidFilm = new Film();
+        invalidFilm.setName("test3");
+        invalidFilm.setReleaseDate(firstMovieReleaseDate.minusDays(1));
+
         Exception exception = assertThrows(NotValidException.class, () -> {
-            controller.create(film);
+            controller.create(invalidFilm);
         });
         assertEquals("Значение поля дата_релиза должно быть позже 28.12.1895", exception.getMessage());
 
-        film.setReleaseDate(LocalDate.of(1896, 10, 10));
-        controller.create(film);
+        //update valid boundary value +1
+        validFilm2.setId(1L);
+        Film updatedFilm1 = controller.create(validFilm2);
+        assertEquals(LocalDate.of(1895, 12, 29), updatedFilm1.getReleaseDate());
 
-        film.setId(1L);
-        film.setName("test");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27));
+        //update valid boundary value 0
+        validFilm1.setId(2L);
+        Film updatedFilm2 = controller.create(validFilm1);
+        assertEquals(firstMovieReleaseDate, updatedFilm2.getReleaseDate());
+
+        //update invalid boundary value -1
+        invalidFilm.setId(1L);
         exception = assertThrows(NotValidException.class, () -> {
-            controller.update(film);
+            controller.update(invalidFilm);
         });
         assertEquals("Значение поля дата_релиза должно быть позже 28.12.1895", exception.getMessage());
     }
 
     @Test
-    void boundary_value_tests_duration() throws Exception {
+    void boundary_value_tests_duration() {
+        FilmController controller = new FilmController();
+        //create valid boundary value 0 (id = 1)
+        Film validFilm1 = new Film();
+        validFilm1.setName("test3");
+        validFilm1.setDuration(1);
 
-        String filmWithValidDuration = "{\n" + """
-                    "name": "test1",
-                    "releaseDate": "1895-12-29",
-                    "duration": 1
-                }
-                """;
+        Film createdFilm1 = controller.create(validFilm1);
+        assertEquals(1, createdFilm1.getDuration());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/films")
-                        .content(filmWithValidDuration)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        //create valid boundary value +1 (id = 2)
+        Film validFilm2 = new Film();
+        validFilm2.setName("test3");
+        validFilm2.setDuration(2);
 
-        filmWithValidDuration = "{\n" + """
-                    "id": 1,
-                    "duration": 100
-                }
-                """;
+        Film createdFilm2 = controller.create(validFilm2);
+        assertEquals(2, createdFilm2.getDuration());
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(filmWithValidDuration)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        //create invalid boundary value -1
+        Film invalidFilm1 = new Film();
+        invalidFilm1.setName("test3");
+        invalidFilm1.setDuration(0);
 
-        filmWithValidDuration = "{\n" + """
-                    "id": 1,
-                    "duration": 1
-                }
-                """;
+        Exception exception = assertThrows(NotValidException.class, () -> {
+            controller.create(invalidFilm1);
+        });
+        assertEquals("Поле продолжительность должно содержать положительное число", exception.getMessage());
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(filmWithValidDuration)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        //create invalid boundary value -0
+        Film invalidFilm2 = new Film();
+        invalidFilm2.setName("test3");
+        invalidFilm2.setDuration(-1);
 
-        filmWithValidDuration = "{\n" + """
-                    "id": 1,
-                    "duration": -1
-                }
-                """;
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.create(invalidFilm2);
+        });
+        assertEquals("Поле продолжительность должно содержать положительное число", exception.getMessage());
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/films")
-                        .content(filmWithValidDuration)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        //update valid boundary value +1
+        validFilm2.setId(1L);
+        Film updatedFilm1 = controller.create(validFilm2);
+        assertEquals(2, updatedFilm1.getDuration());
+
+        //update valid boundary value 0
+        validFilm1.setId(2L);
+        Film updatedFilm2 = controller.create(validFilm1);
+        assertEquals(1, updatedFilm2.getDuration());
+
+        //update invalid boundary value -1
+        invalidFilm1.setId(1L);
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.update(invalidFilm1);
+        });
+        assertEquals("Поле продолжительность должно содержать положительное число", exception.getMessage());
+
+        //update invalid boundary value -2
+        invalidFilm2.setId(1L);
+        exception = assertThrows(NotValidException.class, () -> {
+            controller.update(invalidFilm2);
+        });
+        assertEquals("Поле продолжительность должно содержать положительное число", exception.getMessage());
     }
 }

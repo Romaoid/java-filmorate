@@ -1,15 +1,11 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ConditionsNotMetException;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.Create;
-import ru.yandex.practicum.filmorate.model.Update;
+import ru.yandex.practicum.filmorate.exception.NotValidException;
 import ru.yandex.practicum.filmorate.model.User;
-
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -28,32 +24,20 @@ public class UserController {
     }
 
     @PostMapping
-    public User create(@Validated(Create.class) @RequestBody User newUser) {
+    public User create(@RequestBody User newUser) {
         log.debug("Запрос на добавление нового пользователя {}", newUser);
 
-        if (newUser.getLogin() == null || newUser.getLogin().isBlank()) {
-        log.error("Ошибка добавления пользователя. Поле логин отсутствует или пусто");
-        }
-        if (newUser.getLogin().contains(" ")) {
-            log.error("Ошибка добавления пользователя. Поле логин содержит знаки - \"пробел\"");
-        }
-        if (newUser.getBirthday() != null && newUser.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Ошибка добавления пользователя. Поле дата_рождения старше текущей даты");
-        }
-        if (!newUser.getEmail().contains("@")) {
-            log.error("Ошибка добавления пользователя. Поле имейл не содержит знак - \"@\"");
+        if (!isLoginValid(newUser.getLogin())) {
+            throw new NotValidException("Поле логин не должно быть пустым");
         }
 
-        for (User user : users.values()) {
-            if (user.getEmail().equals(newUser.getEmail())) {
-                throw new DuplicatedDataException("Этот имейл уже используется");
-            }
-            if (user.getLogin().equals(newUser.getLogin())) {
-                throw new DuplicatedDataException("Этот логин уже используется");
-            }
+        isDateValid(newUser.getBirthday());
+
+        if (!isEmailValid(newUser.getEmail())) {
+            throw new NotValidException("Поле имейл не должно быть пустым");
         }
 
-        if (newUser.getName() == null || newUser.getName().isBlank()) {
+        if (isStringNull(newUser.getName())) {
             log.trace("Полю имя присвоено значение {}", newUser.getLogin());
             newUser.setName(newUser.getLogin());
         }
@@ -65,55 +49,32 @@ public class UserController {
         return newUser;
     }
 
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        log.debug("Новому пользователю выделен id {}", (currentMaxId + 1));
-        return ++currentMaxId;
-    }
-
     @PutMapping
-    public User update(@Validated(Update.class) @RequestBody User newUser) {
+    public User update(@RequestBody User newUser) {
         log.debug("Запрос на редактирование пользователя {}", newUser);
         if (newUser.getId() == null) {
             throw new ConditionsNotMetException("Id должен быть указан");
         }
 
-        for (User user : users.values()) {
-            if (user.getEmail().equals(newUser.getEmail())) {
-                throw new DuplicatedDataException("Этот имейл уже используется");
-            }
-            if (user.getLogin().equals(newUser.getLogin())) {
-                throw new DuplicatedDataException("Этот логин уже используется");
-            }
-        }
-
-        if (newUser.getBirthday() != null && newUser.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Ошибка изменения пользователя. Поле дата_рождения старше текущей даты");
-        }
-
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
 
-            if (newUser.getEmail() != null) {
+            if (isEmailValid(newUser.getEmail())) {
                 log.debug("Успешное редактирование пользователя {}. Значение поля имейл: {}, заменено на {}",
                         newUser.getId(), oldUser.getEmail(), newUser.getEmail());
                 oldUser.setEmail(newUser.getEmail());
             }
-            if (newUser.getLogin() != null) {
+            if (isLoginValid(newUser.getLogin())) {
                 log.debug("Успешное редактирование пользователя {}. Значение поля логин: {}, заменено на {}",
                         newUser.getId(), oldUser.getLogin(), newUser.getLogin());
                 oldUser.setLogin(newUser.getLogin());
             }
-            if (newUser.getName() != null) {
+            if (!isStringNull(newUser.getName())) {
                 log.debug("Успешное редактирование пользователя {}. Значение поля имя: {}, заменено на {}",
                         newUser.getId(), oldUser.getName(), newUser.getName());
                 oldUser.setName(newUser.getName());
             }
-            if (newUser.getBirthday() != null) {
+            if (isDateValid(newUser.getBirthday())) {
                 log.debug("Успешное редактирование пользователя {}. Значение поля дата_рождения: {}, заменено на {}",
                         newUser.getId(), oldUser.getBirthday(), newUser.getBirthday());
                 oldUser.setBirthday(newUser.getBirthday());
@@ -126,5 +87,54 @@ public class UserController {
         throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
     }
 
+    private boolean isStringNull(String parameter) {
+        return parameter == null || parameter.isBlank();
+    }
 
+    private long getNextId() {
+        long currentMaxId = users.keySet()
+                .stream()
+                .mapToLong(id -> id)
+                .max()
+                .orElse(0);
+        log.debug("Новому пользователю выделен id {}", (currentMaxId + 1));
+        return ++currentMaxId;
+    }
+
+    private boolean isLoginValid(String login) {
+        if (isStringNull(login)) {
+            return false;
+        }
+
+        if (login.matches("\\S*")) {
+            return true;
+        }
+
+        throw new NotValidException("Поле логин не должно содержать символы пробела");
+    }
+
+    private boolean isEmailValid(String email) {
+        if (isStringNull(email)) {
+            return false;
+        }
+
+        if (email.matches("^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+.[a-zA-Z0-9_-]+")) {
+            return true;
+        }
+
+        throw new NotValidException("Поле имейл должно содержать буквы латинского алфавита, цифры и знак \"@\". " +
+                "Пример: example@domain.com");
+    }
+
+    private boolean isDateValid(LocalDate date) {
+        if (date == null) {
+            return false;
+        }
+
+        if (date.isAfter(LocalDate.now())) {
+            throw new NotValidException("Значение поля дата_рождения должно быть раньше текущей даты");
+        }
+
+        return true;
+    }
 }
