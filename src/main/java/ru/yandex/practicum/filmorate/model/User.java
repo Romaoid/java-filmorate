@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.model;
 
 import lombok.*;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 public class User {
@@ -10,4 +11,5 @@ public class User {
     String login;
     String name;
     LocalDate birthday;
+    Set<Long> friends;
 }
