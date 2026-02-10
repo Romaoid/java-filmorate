@@ -75,6 +75,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
         throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
     }
+
     public Film delete(Film film) {
         if (film.getId() == null) {
             throw new ValidationException("Поле id не должно быть пустым");
