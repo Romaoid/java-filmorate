@@ -10,8 +10,12 @@ public interface UserStorage {
     final Map<Long, User> users = new HashMap<>();
 
     public Collection<User> getUsers();
+
     public User getUserById(Long id);
+
     public User create(User newUser);
+
     public User delete(User user);
+
     public User update(User newUser);
 }
