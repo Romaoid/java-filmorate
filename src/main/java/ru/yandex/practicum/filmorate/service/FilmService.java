@@ -6,6 +6,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -13,12 +14,16 @@ import java.util.stream.Collectors;
 @Service
 public class FilmService {
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
 
-    public FilmService(FilmStorage filmStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
     }
 
-    public void addLikeFilm(Film film, User user) {
+    public void addLikeFilm(Long filmId, Long userId) {
+        Film film = filmStorage.getFilmById(filmId);
+        User user = userStorage.getUserById(userId);
         Set<Long> ratingList;
 
         if (film.getLikes() == null) {
@@ -31,7 +36,26 @@ public class FilmService {
         film.setLikes(ratingList);
     }
 
-    public void removeLikeFilm(Film film, User user) {
+    public Collection<Film> getFilmsAll() {
+        return filmStorage.getFilms();
+    }
+
+    public Film getFilmById(Long id) {
+        return filmStorage.getFilmById(id);
+    }
+
+    public Film create(Film newFilm) {
+        return filmStorage.create(newFilm);
+    }
+
+    public Film update(Film newFilm) {
+        return filmStorage.update(newFilm);
+    }
+
+    public void removeLikeFilm(Long filmId, Long userId) {
+        Film film = filmStorage.getFilmById(filmId);
+        User user = userStorage.getUserById(userId);
+
         if (isUserAlreadyLiked(user)) {
             if (!film.getLikes().contains(user.getId())) {
                 Long likedFilmId = filmStorage.getFilms().stream()
@@ -47,8 +71,9 @@ public class FilmService {
         throw new NotFoundException("Пользователь с id = " + user.getId() + " не ставил лайк");
     }
 
-    public Collection<Film> getTopFilms(String count) {
-        Long topCount;
+    public Collection<Film> getFilmsTop(String count) {
+        long topCount;
+
         try {
             topCount = Long.parseLong(count);
 
@@ -58,7 +83,6 @@ public class FilmService {
         } catch (NumberFormatException e) {
             throw new ValidationException("Count = " + count + ". Параметр должен быть целым положительным числом");
         }
-
 
         return filmStorage.getFilms().stream()
                 .sorted(Comparator.comparingInt((Film film) ->

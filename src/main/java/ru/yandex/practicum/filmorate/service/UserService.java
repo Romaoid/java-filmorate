@@ -12,13 +12,16 @@ import java.util.Set;
 
 @Service
 public class UserService {
-    private UserStorage memoryUserStorage;
+    private final UserStorage userStorage;
 
     public UserService(UserStorage memoryUserStorage) {
-        this.memoryUserStorage = memoryUserStorage;
+        this.userStorage = memoryUserStorage;
     }
 
-    public void addToFriends(User user, User friend) {
+    public void addToFriends(Long userId, Long friendId) {
+        User user = userStorage.getUserById(userId);
+        User friend = userStorage.getUserById(friendId);
+
         if (user.getFriends() != null && user.getFriends().contains(friend.getId())) {
             throw new ValidationException("Пользователь " + friend.getLogin() + " уже добавлен в друзья");
         }
@@ -45,7 +48,10 @@ public class UserService {
         friend.setFriends(friendListUser2);
     }
 
-    public void deleteFromFriends(User user, User friend) {
+    public void deleteFromFriends(Long userId, Long friendId) {
+        User user = userStorage.getUserById(userId);
+        User friend = userStorage.getUserById(friendId);
+
         if (user.getFriends() != null && user.getFriends().contains(friend.getId())) {
             Set<Long> friendList = user.getFriends();
             friendList.remove(friend.getId());
@@ -54,19 +60,40 @@ public class UserService {
         }
     }
 
-    public Collection<User> getFriends(User user) {
+    public Collection<User> getFriends(Long userId) {
+        User user = userStorage.getUserById(userId);
+
         return (user.getFriends() == null) ? new ArrayList<>()
-                : memoryUserStorage.getUsers().stream()
+                : userStorage.getUsers().stream()
                 .filter(friend -> user.getFriends().contains(friend.getId()))
                 .toList();
     }
 
-    public Collection<User> getMutualFriends(User user, User friend) {
+    public User create(User newUser) {
+        return userStorage.create(newUser);
+    }
+
+    public User update(User newUser) {
+        return userStorage.update(newUser);
+    }
+
+    public Collection<User> getUsersAll() {
+        return userStorage.getUsers();
+    }
+
+    public User getUserById(Long id) {
+        return userStorage.getUserById(id);
+    }
+
+    public Collection<User> getFriendsMutual(Long userId, Long friendId) {
+        User user = userStorage.getUserById(userId);
+        User friend = userStorage.getUserById(friendId);
+
         Collection<Long> mutualFriendsIdList = user.getFriends().stream()
                 .filter(id -> friend.getFriends().contains(id))
                 .toList();
 
-        return memoryUserStorage.getUsers().stream()
+        return userStorage.getUsers().stream()
                 .filter(usr -> mutualFriendsIdList.contains(usr.getId()))
                 .toList();
     }
