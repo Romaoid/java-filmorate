@@ -11,5 +11,6 @@ public class User {
     String login;
     String name;
     LocalDate birthday;
+    Boolean friendshipStatus;
     Set<Long> friends;
 }

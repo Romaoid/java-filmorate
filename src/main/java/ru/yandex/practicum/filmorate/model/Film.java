@@ -12,5 +12,7 @@ public class Film {
     String description;
     LocalDate releaseDate;
     Integer duration;
+    String genre;
+    String rating;
     Set<Long> likes;
 }
