@@ -1,4 +1,4 @@
-![sql diagram](src/main/resources/db.jpg?raw=true)
+![sql diagram](https://github.com/Romaoid/java-filmorate/blob/add-database/src/main/resources/db.JPG?raw=true)
 -
 На схеме представлены две основные сущности:
 - Фильм
