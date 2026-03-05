@@ -1,6 +1,11 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.FilmDTO;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.dto.request.FilmCreateRequest;
+import ru.yandex.practicum.filmorate.dto.request.FilmUpdateRequest;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -13,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class FilmService {
+    @Qualifier("FilmDbStorage")
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
 
@@ -36,20 +42,34 @@ public class FilmService {
         film.setLikes(ratingList);
     }
 
-    public Collection<Film> getFilmsAll() {
-        return filmStorage.getFilms();
+    public Collection<FilmDTO> getFilmsAll() {
+        return filmStorage.getFilms()
+                .stream()
+                .map(FilmMapper::mapToFilmDTO)
+                .collect(Collectors.toList());
     }
 
-    public Film getFilmById(Long id) {
-        return filmStorage.getFilmById(id);
+    public FilmDTO getFilmById(Long id) {
+        return FilmMapper.mapToFilmDTO(filmStorage.getFilmById(id));
     }
 
-    public Film create(Film newFilm) {
-        return filmStorage.create(newFilm);
+    public FilmDTO create(FilmCreateRequest createRequest) {
+        if (createRequest.getName() == null || createRequest.getName().isEmpty()) {
+            throw new ValidationException("Название фильма должно быть указано");
+        }
+        //проверки на дупликат
+        Film newFilm = FilmMapper.mapToFilm(createRequest);
+        newFilm = filmStorage.create(newFilm);
+        return FilmMapper.mapToFilmDTO(newFilm);
     }
 
-    public Film update(Film newFilm) {
-        return filmStorage.update(newFilm);
+    public FilmDTO update(FilmUpdateRequest updateRequest) {
+        if (updateRequest.getId() == null) {
+            throw new ValidationException("ID должен быть указан");
+        }
+        Film updatedFilm = FilmMapper.updateFilmFields(filmStorage.getFilmById(updateRequest.getId()),updateRequest);
+
+        return FilmMapper.mapToFilmDTO(filmStorage.update(updatedFilm));
     }
 
     public void removeLikeFilm(Long filmId, Long userId) {

@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 
 @Slf4j
-@Component
+//@Component
 public class InMemoryFilmStorage implements FilmStorage {
     private static final LocalDate FIRST_FILM_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
@@ -74,20 +74,6 @@ public class InMemoryFilmStorage implements FilmStorage {
             return oldFilm;
         }
         throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
-    }
-
-    public Film delete(Film film) {
-        if (film.getId() == null) {
-            throw new ValidationException("Поле id не должно быть пустым");
-        }
-
-        if (films.containsKey(film.getId())) {
-            Film oldFilm = films.remove(film.getId());
-
-            log.info("Фильм удален {}", oldFilm);
-            return oldFilm;
-        }
-        throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
     }
 
     public Collection<Film> getFilms() {

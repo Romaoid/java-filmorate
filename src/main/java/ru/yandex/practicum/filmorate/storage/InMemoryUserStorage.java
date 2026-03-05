@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 
 @Slf4j
-@Component
+//@Component
 public class InMemoryUserStorage implements UserStorage {
 
     public Collection<User> getUsers() {
@@ -76,10 +76,6 @@ public class InMemoryUserStorage implements UserStorage {
             return oldUser;
         }
         throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
-    }
-
-    public User delete(User user) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Функциональность не добавлена");
     }
 
     public User getUserById(Long id) {

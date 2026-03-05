@@ -6,10 +6,10 @@ import java.util.Map;
 
 @Data
 public class User {
-    Long id;
-    String email;
-    String login;
-    String name;
-    LocalDate birthday;
-    Map<Long, FriendshipStatus> friends;
+    private Long id;
+    private String email;
+    private String login;
+    private String name;
+    private LocalDate birthday;
+    private Map<Long, FriendshipStatus> friends;
 }

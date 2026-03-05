@@ -15,7 +15,5 @@ public interface UserStorage {
 
     public User create(User newUser);
 
-    public User delete(User user);
-
     public User update(User newUser);
 }

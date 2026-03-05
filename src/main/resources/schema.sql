@@ -1,47 +1,47 @@
-#Create tables
-
 CREATE TABLE IF NOT EXISTS rating (
-    id BIGINT AS IDENTITY PRIMARY KEY,
+    id INT PRIMARY KEY,
     rating VARCHAR(10) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS genre (
-    id BIGINT AS IDENTITY PRIMARY KEY,
+    id INT PRIMARY KEY,
     genre VARCHAR(40) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS friendship_status (
-    id BIGINT AS IDENTITY PRIMARY KEY,
+    id INT PRIMARY KEY,
     status_name VARCHAR(20) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS films (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title VARCHAR(40) NOT NULL,
-    description VARCHAR(200),
-    duration INT,
-    release_date TIMESTAMP,
-    genre_id BIGINT REFERENCES genre(id) ON DELETE SET NULL
+    description VARCHAR(200) DEFAULT NULL,
+    duration INT DEFAULT NULL,
+    release_date TIMESTAMP DEFAULT NULL,
+    rating_id INT REFERENCES rating(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     login VARCHAR(40) NOT NULL UNIQUE,
     email VARCHAR(40) NOT NULL UNIQUE,
-    name VARCHAR(40),
-    birthday TIMESTAMP
+    name VARCHAR(40) DEFAULT NULL,
+    birthday TIMESTAMP DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS likes (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     film_id BIGINT NOT NULL REFERENCES films(id) ON DELETE CASCADE
+    CONSTRAINT uniq_film_user_CHK UNIQUE (user_id, film_id)
 );
 
-CREATE TABLE IF NOT EXISTS film_ratings (
+CREATE TABLE IF NOT EXISTS film_genres (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    rating_id BIGINT NOT NULL REFERENCES rating(id) ON DELETE CASCADE,
+    genre_id INT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
     film_id BIGINT NOT NULL REFERENCES films(id) ON DELETE CASCADE
+    CONSTRAINT uniq_film_genre_CHK UNIQUE (genre_id, film_id)
 );
 
 CREATE TABLE IF NOT EXISTS friendship (
@@ -49,32 +49,6 @@ CREATE TABLE IF NOT EXISTS friendship (
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     friend_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 CONSTRAINT friend_himself_CHK CHECK (user_id != friend_id),
-    status_id BIGINT NOT NULL REFERENCES friendship_status(id) ON DELETE RESTRICT
+CONSTRAINT uniq_friend_user_CHK UNIQUE (user_id, friend_id),
+    status_id INT NOT NULL REFERENCES friendship_status(id) ON DELETE RESTRICT
 );
-
-#Insert
-
-INSERT INTO rating (id, rating)
-VALUES 
-    (1, 'G'),
-    (2, 'PG'),
-    (3, 'PG-13'),
-    (4, 'R'),
-    (5, 'NC-17')
-ON CONFLICT(id) DO NOTHING;
-        
-INSERT INTO genre (id, genre)
-VALUES 
-    (1, 'COMEDY'),
-    (2, 'DRAMA'),
-    (3, 'ANIMATION'),
-    (4, 'THRILLER'),
-    (5, 'DOCUMENTARY'),
-    (6, 'ACTION')
-ON CONFLICT(id) DO NOTHING;
-
-INSERT INTO friendship_status (id, status_name)
-VALUES 
-    (1, 'UNCONFIRMED'),
-    (2, 'CONFIRMED')
-ON CONFLICT(id) DO NOTHING;
