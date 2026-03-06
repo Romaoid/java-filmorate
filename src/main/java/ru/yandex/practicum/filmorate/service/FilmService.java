@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
+import ru.yandex.practicum.filmorate.dto.GenreDTO;
+import ru.yandex.practicum.filmorate.dto.RatingDTO;
 import ru.yandex.practicum.filmorate.dto.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.dto.request.FilmCreateRequest;
 import ru.yandex.practicum.filmorate.dto.request.FilmUpdateRequest;
@@ -64,7 +66,15 @@ public class FilmService {
         if (createRequest.getName() == null || createRequest.getName().isEmpty()) {
             throw new ValidationException("Название фильма должно быть указано");
         }
-        //проверки на дупликат
+        filmStorage.getFilms()
+                .stream()
+                .map(Film::getName)
+                .filter(name -> name.equals(createRequest.getName()))
+                .findFirst()
+                .ifPresent(name -> {
+                    throw new ValidationException("Фильм с названием " + createRequest.getName() + " уже добавлен");
+                });
+
         Film newFilm = FilmMapper.mapToFilm(createRequest);
         newFilm = filmStorage.create(newFilm);
         return FilmMapper.mapToFilmDTO(newFilm);
@@ -74,6 +84,17 @@ public class FilmService {
         if (updateRequest.getId() == null) {
             throw new ValidationException("ID должен быть указан");
         }
+
+        filmStorage.getFilms()
+                .stream()
+                .filter(film ->
+                        (film.getName().equals(updateRequest.getName()) && (film.getId() != updateRequest.getId())))
+                .findFirst()
+                .ifPresent(film -> {
+                    throw new ValidationException("Фильм с названием " + updateRequest.getName() +
+                            " уже добавлен под id " + film.getId());
+                });
+
         Film updatedFilm = FilmMapper.updateFilmFields(filmStorage.getFilmById(updateRequest.getId()),updateRequest);
 
         return FilmMapper.mapToFilmDTO(filmStorage.update(updatedFilm));
@@ -107,7 +128,6 @@ public class FilmService {
 
         try {
             topCount = Long.parseLong(count);
-//Обратить сюда внимание
             if (topCount <= 0) {
                 throw new NumberFormatException("test");
             }
@@ -123,6 +143,36 @@ public class FilmService {
                 .limit(topCount)
                 .map(FilmMapper::mapToFilmDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Collection<RatingDTO> getRatingList() {
+        return filmStorage.getRatingList()
+                .stream()
+                .sorted(Comparator.comparingInt(RatingDTO::getId))
+                .toList();
+    }
+
+    public RatingDTO getRatingById(int id) {
+        RatingDTO dto = filmStorage.getRatingById(id);
+
+        if (dto != null) {
+            return  dto;
+        }
+        throw new NotFoundException("MPA с id " + id + " не найден");
+    }
+
+    public Collection<GenreDTO> getGenresList() {
+        return filmStorage.getGenresList();
+    }
+
+    public GenreDTO getGenreById(int id) {
+        GenreDTO dto = filmStorage.getGenreById(id);
+
+        if (dto != null) {
+            return  dto;
+        }
+        throw new NotFoundException("Жанр с id " + id + " не найден");
+
     }
 
     private boolean isUserAlreadyLiked(User user) {

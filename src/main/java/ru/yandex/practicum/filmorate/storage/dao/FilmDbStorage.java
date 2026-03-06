@@ -6,12 +6,16 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.dto.GenreDTO;
+import ru.yandex.practicum.filmorate.dto.RatingDTO;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.mapper.FilmRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.GenreRowMapper;
+import ru.yandex.practicum.filmorate.storage.mapper.RatingRowMapper;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -24,8 +28,10 @@ import java.util.stream.Collectors;
 @Component("FilmDbStorage")
 @RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
-    protected final JdbcTemplate jdbc;
-    protected final FilmRowMapper filmMapper;
+    private final JdbcTemplate jdbc;
+    private final FilmRowMapper filmMapper;
+    private final RatingRowMapper ratingMapper;
+    private final GenreRowMapper genreMapper;
 
     public Collection<Film> getFilms() {
         final String findAllQuery = "SELECT * FROM films";
@@ -40,9 +46,9 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     public Film getFilmById(Long filmId) {
-        final String findByID = "SELECT * FROM films WHERE id = ?";
+        final String findById = "SELECT * FROM films WHERE id = ?";
         try {
-            Film result = jdbc.queryForObject(findByID, filmMapper, filmId);
+            Film result = jdbc.queryForObject(findById, filmMapper, filmId);
             if (result != null) {
                 setLikesFromDb(result);
                 setRating(result);
@@ -144,7 +150,35 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-//maybe EmptyResultDataAccessException
+    public Collection<RatingDTO> getRatingList() {
+        final String findAllQuery = "SELECT * FROM rating";
+        return jdbc.query(findAllQuery, ratingMapper);
+    }
+
+    public RatingDTO getRatingById(int id) {
+        final String findById = "SELECT * FROM rating WHERE id = ?";
+        try {
+            return jdbc.queryForObject(findById, ratingMapper, id);
+        } catch (EmptyResultDataAccessException ignored) {
+            return null;
+        }
+    }
+
+    public Collection<GenreDTO> getGenresList() {
+        final String findAllQuery = "SELECT * FROM genre";
+        return jdbc.query(findAllQuery, genreMapper);
+    }
+
+    public GenreDTO getGenreById(int id) {
+        final String findById = "SELECT * FROM genre WHERE id = ?";
+        try {
+            return jdbc.queryForObject(findById, genreMapper, id);
+        } catch (EmptyResultDataAccessException ignored) {
+            return null;
+        }
+    }
+
+    //maybe EmptyResultDataAccessException
     private void getGenreFromDB(Film film) {
         final String findGenreQuery =
                 "Select DISTINCT g.genre " +

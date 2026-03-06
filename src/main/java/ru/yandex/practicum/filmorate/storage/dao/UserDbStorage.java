@@ -99,7 +99,7 @@ public class UserDbStorage implements UserStorage {
         return getUserById(newUser.getId());
     }
 
-    public void addFieldToFriendship(Long userId, Long friendId, FriendshipStatus status) {
+    public void addFieldToFriendship(long userId, long friendId, FriendshipStatus status) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         final String insertQuery = "INSERT INTO friendship(user_id, friend_id, status_id) " +
                 "VALUES(?, ?, ?)";
@@ -119,7 +119,7 @@ public class UserDbStorage implements UserStorage {
         if (id == null) throw new InternalServerException("Не удалось сохранить данные");
     }
 
-    public void deleteFieldFromFriendship(Long userId, Long friendId, FriendshipStatus status) {
+    public void deleteFieldFromFriendship(long userId, long friendId, FriendshipStatus status) {
         final String dropQuery = "DELETE FROM friendship WHERE UserId = ? AND FriendId = ?";
         final String mergeQuery =
                 "MERGE INTO friendship(user_id, friend_id, status_id) " +
