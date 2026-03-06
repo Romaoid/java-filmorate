@@ -20,11 +20,11 @@ public final class FilmMapper {
         dto.setName(film.getName());
         dto.setDescription(film.getDescription());
         dto.setDuration(film.getDuration());
-        dto.setMpa(Optional.ofNullable(film.getRating()).map(Rating::toString).orElse(null));
+        dto.setMpa(Optional.ofNullable(film.getRating()).map(Rating::toInt).orElse(null));
 
         dto.setGenres(film.getGenres()
                 .stream()
-                .map(Genre::toString)
+                .map(Genre::toInt)
                 .collect(Collectors.toSet())
         );
 

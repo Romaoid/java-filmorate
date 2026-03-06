@@ -12,6 +12,6 @@ public class FilmCreateRequest {
     private String description;
     private LocalDate releaseDate;
     private Integer duration;
-    private Set<String> genres;
-    private String mpa;
+    private Set<Integer> genres;
+    private Integer mpa;
 }

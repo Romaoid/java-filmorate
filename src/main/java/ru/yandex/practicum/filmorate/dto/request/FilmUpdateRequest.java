@@ -12,8 +12,8 @@ public class FilmUpdateRequest {
     private String description;
     private LocalDate releaseDate;
     private Integer duration;
-    private Set<String> genres;
-    private String mpa;
+    private Set<Integer> genres;
+    private Integer mpa;
 
     public boolean hasName() {
         return ! (name == null || name.isBlank());
