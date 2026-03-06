@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,10 +17,11 @@ import ru.yandex.practicum.filmorate.storage.mapper.FilmRowMapper;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.Instant;
+import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component("FilmDbStorage")
 @RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
@@ -57,21 +59,41 @@ public class FilmDbStorage implements FilmStorage {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         Integer rating = getRating(newFilm);
         final String insertQuery = "INSERT INTO films(title, duration, description, release_date, rating_id) " +
-                "VALUES(1, 2, 3, 4, 5) returning id";
+                "VALUES(?, ?, ?, ?, ?)";
 
         jdbc.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, newFilm.getName());
-            ps.setInt(2, newFilm.getDuration());
-            ps.setString(3, newFilm.getDescription());
-            ps.setTimestamp(4, Timestamp.from(Instant.from(newFilm.getReleaseDate())));
-            ps.setInt(5, rating);
-            return ps;}, keyHolder);
+                PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, newFilm.getName());
+
+                if (newFilm.getDuration() != null) {
+                    ps.setInt(2, newFilm.getDuration());
+                } else {
+                    ps.setNull( 2, Types.INTEGER);
+                }
+
+                ps.setString(3, newFilm.getDescription());
+
+                if (newFilm.getReleaseDate() != null) {
+                    ps.setTimestamp(4, Timestamp.valueOf(newFilm.getReleaseDate().atStartOfDay()));
+                } else {
+                    ps.setNull(4, Types.DATE);
+                }
+                if (rating == null) {
+                    ps.setNull( 5, Types.INTEGER);
+                } else {
+                    ps.setInt(5, rating);
+                }
+                return ps;
+            }, keyHolder
+        );
 
         Long id = keyHolder.getKeyAs(Long.class);
         if (id != null) {
             newFilm.setId(id);
-            setGenreToBD(newFilm);
+
+            if (newFilm.getGenres() != null) {
+                setGenreToBD(newFilm);
+            }
             return newFilm;
         } else {
             throw new InternalServerException("Не удалось сохранить данные");
@@ -89,10 +111,12 @@ public class FilmDbStorage implements FilmStorage {
                 newFilm.getName(),
                 newFilm.getDuration(),
                 newFilm.getDescription(),
-                Timestamp.from(Instant.from(newFilm.getReleaseDate())),
+                Timestamp.valueOf(newFilm.getReleaseDate().atStartOfDay()),
                 rating,
                 newFilm.getId()
         );
+
+        setGenreToBD(newFilm);
 
         if (rowsUpdated == 0) {
             throw new InternalServerException("Не удалось обновить данные");
@@ -106,30 +130,41 @@ public class FilmDbStorage implements FilmStorage {
         final String findGenreQuery =
                 "Select DISTINCT g.genre " +
                 "FROM genre g " +
-                "JOIN friendship_genres fg ON fg.genre_id = g.id " +
+                "JOIN film_genres fg ON fg.genre_id = g.id " +
                 "JOIN films f ON fg.film_id = f.id " +
                 "WHERE f.id = ?";
         List<String> genres = jdbc.queryForList(findGenreQuery, String.class, film.getId());
+
         film.setGenres(genres.stream().map(Genre::from).collect(Collectors.toSet()));
     }
 
     private void setGenreToBD(Film film) {
+        if (film.getGenres() == null ) { //|| film.getGenres().isEmpty()
+            return;
+        }
+
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         final String insertQuery = "INSERT INTO film_genres(genre_id, film_id) " +
-                "VALUES(1, 2) returning id";
+                "VALUES(?, ?)";
         final String getGenreId = "SELECT g.id FROM genre AS g WHERE g.genre = ?";
 
-        Set<Integer> genresId =  film.getGenres().stream()
-                .map(Genre::toString)
-                .map(str -> getIdByQuery(getGenreId, str))
-                .collect(Collectors.toSet());
+        Set<Integer> genresId =  Optional.of(film.getGenres())
+                .map(genres -> genres.stream()
+                    .map(Genre::toString)
+                    .map(str -> getIdByQuery(getGenreId, str))
+                    .collect(Collectors.toSet()))
+                .get();
 
-        for (Integer genre : genresId) {
+        dropGenreFromFilm(film);
+
+        for (int genre : genresId) {
             jdbc.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
-                ps.setInt(1, genre);
-                ps.setLong(2, film.getId());
-                return ps;}, keyHolder);
+                    PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
+                    ps.setInt(1, genre);
+                    ps.setLong(2, film.getId());
+                    return ps;
+                }, keyHolder
+            );
 
             Long id = keyHolder.getKeyAs(Long.class);
 
@@ -139,6 +174,12 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+    private void dropGenreFromFilm(Film film) {
+        final String dropQuery = "DELETE FROM film_genres WHERE film_id = ?";
+
+        int rowsUpdated = jdbc.update(dropQuery, film.getId());
+    }
+
     private void setRating(Film film) {
         final String findRatingQuery =
                 "SELECT r.rating " +
@@ -146,13 +187,23 @@ public class FilmDbStorage implements FilmStorage {
                 "JOIN films f ON r.id = f.rating_id " +
                 "WHERE f.id = ?";
         try {
-            film.setRating(Rating.from(jdbc.queryForObject(findRatingQuery, String.class, film.getId())));
+            String rating = jdbc.queryForObject(findRatingQuery, String.class, film.getId());
+
+            if (rating != null) {
+                film.setRating(Rating.from(rating));
+            } else {
+                film.setRating(null);
+            }
         } catch (EmptyResultDataAccessException ignored) {
             film.setRating(null);
         }
     }
 
     private Integer getRating(Film film) {
+        if (film.getRating() == null) {
+            return null;
+        }
+
         final String findRatingQuery = "SELECT r.id FROM rating AS r WHERE r.rating = ?";
         try {
             return jdbc.queryForObject(findRatingQuery, Integer.class, film.getRating().toString());
@@ -161,7 +212,7 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private Integer getIdByQuery( String query, Object key) {
+    private Integer getIdByQuery(String query, String key) {
         try {
             return jdbc.queryForObject(query, Integer.class, key);
         } catch (EmptyResultDataAccessException ignored) {

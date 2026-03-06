@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.dto.request;
 
 import lombok.Data;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Rating;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -14,8 +12,8 @@ public class FilmUpdateRequest {
     private String description;
     private LocalDate releaseDate;
     private Integer duration;
-    private Set<Genre> genres;
-    private Rating mpa;
+    private Set<String> genres;
+    private String mpa;
 
     public boolean hasName() {
         return ! (name == null || name.isBlank());

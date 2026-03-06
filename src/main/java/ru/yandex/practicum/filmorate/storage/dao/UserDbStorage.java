@@ -1,11 +1,13 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.mapper.UserRowMapper;
@@ -13,9 +15,10 @@ import ru.yandex.practicum.filmorate.storage.mapper.UserRowMapper;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.Instant;
+import java.sql.Types;
 import java.util.Collection;
 
+@Slf4j
 @Component
 @Qualifier
 @RequiredArgsConstructor
@@ -46,22 +49,31 @@ public class UserDbStorage implements UserStorage {
     public User create(User newUser) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         final String insertQuery = "INSERT INTO users(login, email, name, birthday) " +
-                "VALUES(1, 2, 3, 4) returning id";
+                "VALUES(?, ?, ?, ?)";
 
-        jdbc.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, newUser.getLogin());
-            ps.setString(2, newUser.getEmail());
-            ps.setString(3, newUser.getName());
-            ps.setTimestamp(4, Timestamp.from(Instant.from(newUser.getBirthday())));
-            return ps;}, keyHolder);
+        jdbc.update(
+                connection -> {
+                    PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
+                    ps.setString(1, newUser.getLogin());
+                    ps.setString(2, newUser.getEmail());
+                    ps.setString(3, newUser.getName());
+
+                    if (newUser.getBirthday() != null) {
+                        ps.setTimestamp(4, Timestamp.valueOf(newUser.getBirthday().atStartOfDay()));
+                    } else {
+                        ps.setNull(4, Types.DATE);
+                    }
+
+                    return ps;
+                }, keyHolder
+        );
 
         Long id = keyHolder.getKeyAs(Long.class);
         if (id != null) {
             newUser.setId(id);
             return newUser;
         } else {
-            throw new serverErrorResponse("Не удалось сохранить данные");
+            throw new InternalServerException("Не удалось сохранить данные");
         }
     }
 
@@ -74,12 +86,12 @@ public class UserDbStorage implements UserStorage {
                 newUser.getLogin(),
                 newUser.getEmail(),
                 newUser.getName(),
-                Timestamp.from(Instant.from(newUser.getBirthday())),
+                Timestamp.valueOf(newUser.getBirthday().atStartOfDay()),
                 newUser.getId()
         );
 
         if (rowsUpdated == 0) {
-            throw new serverErrorResponse("Не удалось обновить данные");
+            throw new InternalServerException("Не удалось обновить данные");
         }
 
         return getUserById(newUser.getId());
