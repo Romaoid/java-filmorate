@@ -29,17 +29,24 @@ public class FilmService {
 
     public void addLikeFilm(Long filmId, Long userId) {
         Film film = filmStorage.getFilmById(filmId);
+        if (film == null) throw new NotFoundException("Фильм с id = " + filmId + " не найден");
         User user = userStorage.getUserById(userId);
+        if (user == null) throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         Set<Long> ratingList;
 
-        if (film.getLikes() == null) {
+        if (film.getLikes() == null) { //нужна ли проверка на null?
             ratingList = new HashSet<>();
         } else {
             ratingList = film.getLikes();
         }
 
+        if (ratingList.contains(user.getId())) {
+            throw new ValidationException("Лайк пользователя " + user.getLogin() +
+                    " уже добавлен фильму " + film.getName());
+        }
         ratingList.add(user.getId());
         film.setLikes(ratingList);
+        filmStorage.setLikeToDb(filmId, userId);
     }
 
     public Collection<FilmDTO> getFilmsAll() {
@@ -74,7 +81,9 @@ public class FilmService {
 
     public void removeLikeFilm(Long filmId, Long userId) {
         Film film = filmStorage.getFilmById(filmId);
+        if (film == null) throw new NotFoundException("Фильм с id = " + filmId + " не найден");
         User user = userStorage.getUserById(userId);
+        if (user == null) throw new NotFoundException("Пользователь с id = " + userId + " не найден");
 
         if (isUserAlreadyLiked(user)) {
             if (!film.getLikes().contains(user.getId())) {
@@ -85,18 +94,20 @@ public class FilmService {
                 throw new ValidationException("Id фильма = " + film.getId()
                         + ".\nПользователь с id = " + user.getId() + " поставил лайк фильму c id = " + likedFilmId);
             }
+
+            filmStorage.deleteLikeFromDb(filmId, userId);
             film.getLikes().remove(user.getId());
             return;
         }
         throw new NotFoundException("Пользователь с id = " + user.getId() + " не ставил лайк");
     }
 
-    public Collection<Film> getFilmsTop(String count) {
+    public Collection<FilmDTO> getFilmsTop(String count) {
         long topCount;
 
         try {
             topCount = Long.parseLong(count);
-
+//Обратить сюда внимание
             if (topCount <= 0) {
                 throw new NumberFormatException("test");
             }
@@ -110,6 +121,7 @@ public class FilmService {
                                 .map(Set::size)
                                 .orElse(0)).reversed())
                 .limit(topCount)
+                .map(FilmMapper::mapToFilmDTO)
                 .collect(Collectors.toList());
     }
 

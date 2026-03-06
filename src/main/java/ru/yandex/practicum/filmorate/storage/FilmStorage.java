@@ -17,4 +17,7 @@ public interface FilmStorage {
 
     public Film update(Film newFilm);
 
+    public void setLikeToDb(long filmId, long userId);
+
+    public void deleteLikeFromDb(long filmId, long userId);
 }

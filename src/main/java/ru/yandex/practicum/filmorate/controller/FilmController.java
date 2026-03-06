@@ -30,7 +30,7 @@ public class FilmController {
     }
 
     @GetMapping({"/popular?count={count}", "/popular"})
-    public Collection<Film> findTopFilms(@RequestParam(defaultValue = "10") String count) {
+    public Collection<FilmDTO> findTopFilms(@RequestParam(defaultValue = "10") String count) {
         return filmService.getFilmsTop(count);
     }
 

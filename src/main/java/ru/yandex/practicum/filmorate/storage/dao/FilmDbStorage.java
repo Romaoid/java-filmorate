@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage.dao;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -35,7 +34,7 @@ public class FilmDbStorage implements FilmStorage {
                 .peek(film -> {
                     setRating(film);
                     getGenreFromDB(film);
-                    setLikes(film);
+                    setLikesFromDb(film);
                 })
                 .toList();
     }
@@ -45,7 +44,7 @@ public class FilmDbStorage implements FilmStorage {
         try {
             Film result = jdbc.queryForObject(findByID, filmMapper, filmId);
             if (result != null) {
-                setLikes(result);
+                setLikesFromDb(result);
                 setRating(result);
                 getGenreFromDB(result);
             }
@@ -125,6 +124,26 @@ public class FilmDbStorage implements FilmStorage {
         return getFilmById(newFilm.getId());
     }
 
+    public void setLikeToDb(long filmId, long userId) {
+        final String insertQuery = "INSERT INTO likes(user_id, film_id) VALUES(?, ?)";
+
+        int rowsAdded = jdbc.update(insertQuery, userId, filmId);
+
+        if (rowsAdded == 0) {
+            throw new InternalServerException("Не удалось обновить данные");
+        }
+    }
+
+    public void deleteLikeFromDb(long filmId, long userId) {
+        final String dropQuery = "DELETE FROM likes WHERE user_id = ? AND film_id = ?";
+
+        int rowsDropped = jdbc.update(dropQuery, userId, filmId);
+
+        if (rowsDropped != 1) {
+            throw new InternalServerException("Не удалось обновить данные");
+        }
+    }
+
 //maybe EmptyResultDataAccessException
     private void getGenreFromDB(Film film) {
         final String findGenreQuery =
@@ -144,8 +163,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        final String insertQuery = "INSERT INTO film_genres(genre_id, film_id) " +
-                "VALUES(?, ?)";
+        final String insertQuery = "INSERT INTO film_genres(genre_id, film_id) VALUES(?, ?)";
         final String getGenreId = "SELECT g.id FROM genre AS g WHERE g.genre = ?";
 
         Set<Integer> genresId =  Optional.of(film.getGenres())
@@ -155,7 +173,7 @@ public class FilmDbStorage implements FilmStorage {
                     .collect(Collectors.toSet()))
                 .get();
 
-        dropGenreFromFilm(film);
+        deleteGenreFromFilm(film);
 
         for (int genre : genresId) {
             jdbc.update(connection -> {
@@ -174,10 +192,10 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private void dropGenreFromFilm(Film film) {
+    private void deleteGenreFromFilm(Film film) {
         final String dropQuery = "DELETE FROM film_genres WHERE film_id = ?";
 
-        int rowsUpdated = jdbc.update(dropQuery, film.getId());
+        jdbc.update(dropQuery, film.getId());
     }
 
     private void setRating(Film film) {
@@ -220,7 +238,7 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private void setLikes(Film film) {
+    private void setLikesFromDb(Film film) {
         final String findLikesQuery =
                 "Select DISTINCT l.user_id " +
                 "FROM likes l " +
