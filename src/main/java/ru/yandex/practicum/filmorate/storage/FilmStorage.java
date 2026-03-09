@@ -5,28 +5,26 @@ import ru.yandex.practicum.filmorate.dto.RatingDTO;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 public interface FilmStorage {
 
-    public Collection<Film> getFilms();
+    Collection<Film> getFilms();
 
-    public Film getFilmById(Long id);
+    Film getFilmById(Long id);
 
-    public Film create(Film newFilm);
+    Film create(Film newFilm);
 
-    public Film update(Film newFilm);
+    Film update(Film newFilm);
 
-    public void setLikeToDb(long filmId, long userId);
+    void setLikeToDb(long filmId, long userId);
 
-    public void deleteLikeFromDb(long filmId, long userId);
+    void deleteLikeFromDb(long filmId, long userId);
 
-    public Collection<RatingDTO> getRatingList();
+    Collection<RatingDTO> getRatingList();
 
-    public RatingDTO getRatingById(int id);
+    RatingDTO getRatingById(int id);
 
-    public Collection<GenreDTO> getGenresList();
+    Collection<GenreDTO> getGenresList();
 
-    public GenreDTO getGenreById(int id);
+    GenreDTO getGenreById(int id);
 }

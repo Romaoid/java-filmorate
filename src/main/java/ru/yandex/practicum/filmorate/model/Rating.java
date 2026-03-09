@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 public enum Rating {
         G("G", 1),
@@ -10,7 +10,7 @@ public enum Rating {
         NC17("NC-17", 5);
 
     private final String serviceName;
-    private final int id;
+    private final Integer id;
 
     Rating(String serviceName, int id) {
         this.serviceName = serviceName;
@@ -33,18 +33,18 @@ public enum Rating {
             case "pg13", "pg-13", "pg 13" -> PG13;
             case "r" -> R;
             case "nc17", "nc-17", "nc 17" -> NC17;
-            default -> throw new ValidationException("enum Rating");
+            default -> throw new NotFoundException("Не найден рейтинг: " + rating);
         };
     }
 
-    public static Rating from(int num) {
+    public static Rating from(Integer num) {
         return switch (num) {
-            case 1-> G;
+            case 1 -> G;
             case 2 -> PG;
             case 3 -> PG13;
             case 4 -> R;
             case 5 -> NC17;
-            default -> throw new ValidationException("enum Rating");
+            default -> throw new NotFoundException("Не найден рейтинг id: " + num);
         };
     }
 }

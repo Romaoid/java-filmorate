@@ -101,7 +101,7 @@ public class UserDbStorage implements UserStorage {
 
     public void addFieldToFriendship(long userId, long friendId, FriendshipStatus status) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        final String insertQuery = "INSERT INTO friendship(user_id, friend_id, status_id) " +
+        final String insertQuery = "MERGE INTO friendship(user_id, friend_id, status_id) KEY(user_id, friend_id) " +
                 "VALUES(?, ?, ?)";
         int statusId = getFriendshipStatusId(status);
 
@@ -116,11 +116,13 @@ public class UserDbStorage implements UserStorage {
         );
 
         Long id = keyHolder.getKeyAs(Long.class);
-        if (id == null) throw new InternalServerException("Не удалось сохранить данные");
+        if (id == null) {
+            throw new InternalServerException("Не удалось сохранить данные");
+        }
     }
 
     public void deleteFieldFromFriendship(long userId, long friendId, FriendshipStatus status) {
-        final String dropQuery = "DELETE FROM friendship WHERE UserId = ? AND FriendId = ?";
+        final String dropQuery = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
         final String mergeQuery =
                 "MERGE INTO friendship(user_id, friend_id, status_id) " +
                 "KEY(user_id, friend_id) " +
@@ -129,7 +131,7 @@ public class UserDbStorage implements UserStorage {
         jdbc.update(dropQuery, userId, friendId);
 
         if (status == FriendshipStatus.CONFIRMED) {
-            int statusId = getFriendshipStatusId(status);
+            int statusId = getFriendshipStatusId(FriendshipStatus.UNCONFIRMED);
             jdbc.update(
                     connection -> {
                         PreparedStatement ps = connection.prepareStatement(mergeQuery);
@@ -143,13 +145,13 @@ public class UserDbStorage implements UserStorage {
     }
 
     private Integer getFriendshipStatusId(FriendshipStatus status) {
-        final String findQuery = "SELECT status_id FROM friendship_status WHERE status = ?";
+        final String findQuery = "SELECT id FROM friendship_status WHERE status_name = ?";
         return jdbc.queryForObject(findQuery, Integer.class, status.toString());
     }
 
     private void setFriendsToUser(User user) {
         final String findAllQuery =
-                "SELECT f.friend_id AS friend, s.status AS status " +
+                "SELECT f.friend_id AS friend, s.status_name AS status " +
                 "FROM friendship AS f " +
                 "JOIN friendship_status AS s ON f.status_id = s.id " +
                 "WHERE f.user_id = ?";

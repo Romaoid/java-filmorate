@@ -63,8 +63,8 @@ public class FilmDbStorage implements FilmStorage {
     public Film create(Film newFilm) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         Integer rating = getRating(newFilm);
-        final String insertQuery = "INSERT INTO films(title, duration, description, release_date, rating_id) " +
-                "VALUES(?, ?, ?, ?, ?)";
+        final String insertQuery = "INSERT INTO films(title, duration, description, release_date, rating_id) "
+                + "VALUES(?, ?, ?, ?, ?)";
 
         jdbc.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
@@ -73,7 +73,7 @@ public class FilmDbStorage implements FilmStorage {
                 if (newFilm.getDuration() != null) {
                     ps.setInt(2, newFilm.getDuration());
                 } else {
-                    ps.setNull( 2, Types.INTEGER);
+                    ps.setNull(2, Types.INTEGER);
                 }
 
                 ps.setString(3, newFilm.getDescription());
@@ -84,7 +84,7 @@ public class FilmDbStorage implements FilmStorage {
                     ps.setNull(4, Types.DATE);
                 }
                 if (rating == null) {
-                    ps.setNull( 5, Types.INTEGER);
+                    ps.setNull(5, Types.INTEGER);
                 } else {
                     ps.setInt(5, rating);
                 }
@@ -107,9 +107,9 @@ public class FilmDbStorage implements FilmStorage {
 
     public Film update(Film newFilm) {
         final String updateQuery =
-                "UPDATE films " +
-                "SET title = ?, duration = ?, description = ?, release_date = ?, rating_id = ? " +
-                "WHERE id = ?";
+                "UPDATE films "
+                + "SET title = ?, duration = ?, description = ?, release_date = ?, rating_id = ? "
+                + "WHERE id = ?";
         Integer rating = getRating(newFilm);
 
         int rowsUpdated = jdbc.update(updateQuery,
@@ -178,7 +178,6 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    //maybe EmptyResultDataAccessException
     private void getGenreFromDB(Film film) {
         final String findGenreQuery =
                 "Select DISTINCT g.genre " +
@@ -192,7 +191,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void setGenreToBD(Film film) {
-        if (film.getGenres() == null ) { //|| film.getGenres().isEmpty()
+        if (film.getGenres() == null) {
             return;
         }
 

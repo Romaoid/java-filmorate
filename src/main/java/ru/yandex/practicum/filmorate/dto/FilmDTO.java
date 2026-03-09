@@ -14,7 +14,7 @@ public class FilmDTO {
     private String description;
     private LocalDate releaseDate;
     private Integer duration;
-    private Set<Integer> genres;
-    private Integer mpa;
+    private Set<GenreDTO> genres;
+    private RatingDTO mpa;
     //private List<Long> likes;
 }

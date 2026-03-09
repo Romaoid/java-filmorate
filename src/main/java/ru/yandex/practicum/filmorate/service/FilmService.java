@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.FilmDTO;
@@ -14,16 +15,21 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.dao.FilmDbStorage;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class FilmService {
+    private static final LocalDate FIRST_FILM_RELEASE_DATE = LocalDate.of(1895, 12, 28);
     @Qualifier("FilmDbStorage")
     private final FilmStorage filmStorage;
+    @Qualifier("UserDbStorage")
     private final UserStorage userStorage;
 
+    @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
@@ -31,9 +37,13 @@ public class FilmService {
 
     public void addLikeFilm(Long filmId, Long userId) {
         Film film = filmStorage.getFilmById(filmId);
-        if (film == null) throw new NotFoundException("Фильм с id = " + filmId + " не найден");
+        if (film == null) {
+            throw new NotFoundException("Фильм с id = " + filmId + " не найден");
+        }
         User user = userStorage.getUserById(userId);
-        if (user == null) throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+        }
         Set<Long> ratingList;
 
         if (film.getLikes() == null) { //нужна ли проверка на null?
@@ -43,8 +53,8 @@ public class FilmService {
         }
 
         if (ratingList.contains(user.getId())) {
-            throw new ValidationException("Лайк пользователя " + user.getLogin() +
-                    " уже добавлен фильму " + film.getName());
+            throw new ValidationException("Лайк пользователя " + user.getLogin()
+                    + " уже добавлен фильму " + film.getName());
         }
         ratingList.add(user.getId());
         film.setLikes(ratingList);
@@ -63,17 +73,12 @@ public class FilmService {
     }
 
     public FilmDTO create(FilmCreateRequest createRequest) {
-        if (createRequest.getName() == null || createRequest.getName().isEmpty()) {
+        if (createRequest.getName() == null || createRequest.getName().isBlank()) {
             throw new ValidationException("Название фильма должно быть указано");
         }
-        filmStorage.getFilms()
-                .stream()
-                .map(Film::getName)
-                .filter(name -> name.equals(createRequest.getName()))
-                .findFirst()
-                .ifPresent(name -> {
-                    throw new ValidationException("Фильм с названием " + createRequest.getName() + " уже добавлен");
-                });
+        validateDate(createRequest.getReleaseDate());
+        validateDuration(createRequest.getDuration());
+        validateDescription(createRequest.getDescription());
 
         Film newFilm = FilmMapper.mapToFilm(createRequest);
         newFilm = filmStorage.create(newFilm);
@@ -85,26 +90,40 @@ public class FilmService {
             throw new ValidationException("ID должен быть указан");
         }
 
+        Film updatedFilm = filmStorage.getFilmById(updateRequest.getId());
+
+        if (updatedFilm == null) {
+            throw new NotFoundException("Фильм с id = " + updateRequest.getId() + " не найден");
+        }
+
+        validateDate(updateRequest.getReleaseDate());
+        validateDuration(updateRequest.getDuration());
+        validateDescription(updateRequest.getDescription());
+
         filmStorage.getFilms()
                 .stream()
                 .filter(film ->
                         (film.getName().equals(updateRequest.getName()) && (film.getId() != updateRequest.getId())))
                 .findFirst()
                 .ifPresent(film -> {
-                    throw new ValidationException("Фильм с названием " + updateRequest.getName() +
-                            " уже добавлен под id " + film.getId());
+                    throw new ValidationException("Фильм с названием " + updateRequest.getName()
+                            + " уже добавлен под id " + film.getId());
                 });
 
-        Film updatedFilm = FilmMapper.updateFilmFields(filmStorage.getFilmById(updateRequest.getId()),updateRequest);
+        updatedFilm = FilmMapper.updateFilmFields(updatedFilm, updateRequest);
 
         return FilmMapper.mapToFilmDTO(filmStorage.update(updatedFilm));
     }
 
     public void removeLikeFilm(Long filmId, Long userId) {
         Film film = filmStorage.getFilmById(filmId);
-        if (film == null) throw new NotFoundException("Фильм с id = " + filmId + " не найден");
+        if (film == null) {
+            throw new NotFoundException("Фильм с id = " + filmId + " не найден");
+        }
         User user = userStorage.getUserById(userId);
-        if (user == null) throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+        }
 
         if (isUserAlreadyLiked(user)) {
             if (!film.getLikes().contains(user.getId())) {
@@ -178,5 +197,23 @@ public class FilmService {
     private boolean isUserAlreadyLiked(User user) {
         return filmStorage.getFilms().stream()
                 .anyMatch(film -> film.getLikes() != null && film.getLikes().contains(user.getId()));
+    }
+
+    private void validateDate(LocalDate date) {
+        if (date != null && date.isBefore(FIRST_FILM_RELEASE_DATE)) {
+            throw new ValidationException("Значение поля дата_релиза должно быть позже 28.12.1895");
+        }
+    }
+
+    private void validateDuration(Integer duration) {
+        if (duration != null && duration <= 0) {
+            throw new ValidationException("Поле продолжительность должно содержать положительное число");
+        }
+    }
+
+    private void validateDescription(String description) {
+        if (description != null && description.length() > 200) {
+            throw new ValidationException("Поле описание должно быть не более 200 символов");
+        }
     }
 }

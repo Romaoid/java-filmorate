@@ -7,5 +7,5 @@ import lombok.Data;
 public class RatingDTO {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int id;
-    private String rating;
+    private String name;
 }

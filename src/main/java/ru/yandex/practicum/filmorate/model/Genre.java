@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 
 public enum Genre {
@@ -11,7 +12,7 @@ public enum Genre {
     ACTION("Боевик", 6);
 
     private final String serviceName;
-    private final int id;
+    private final Integer id;
 
     Genre(String serviceName, int id) {
         this.serviceName = serviceName;
@@ -35,11 +36,11 @@ public enum Genre {
             case "thriller", "триллер" -> THRILLER;
             case "documentary", "документальный" -> DOCUMENTARY;
             case "action", "боевик" -> ACTION;
-            default -> throw new ValidationException("enum Genre");
+            default -> throw new NotFoundException("Не найден жанр: " + genre);
         };
     }
 
-    public static Genre from(int num) {
+    public static Genre from(Integer num) {
         return switch (num) {
             case 1 -> COMEDY;
             case 2 -> DRAMA;
@@ -47,7 +48,7 @@ public enum Genre {
             case 4 -> THRILLER;
             case 5 -> DOCUMENTARY;
             case 6 -> ACTION;
-            default -> throw new ValidationException("enum Genre");
+            default -> throw new NotFoundException("Не найден жанр с id: " + num);
         };
     }
 }

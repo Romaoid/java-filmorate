@@ -12,7 +12,7 @@ public class GenreRowMapper implements RowMapper<GenreDTO> {
     @Override
     public GenreDTO mapRow(ResultSet resultSet, int rowNum) throws SQLException {
         GenreDTO genre = new GenreDTO();
-        genre.setId(resultSet.getLong("id"));
+        genre.setId(resultSet.getInt("id"));
         genre.setName(resultSet.getString("genre"));
         return genre;
     }

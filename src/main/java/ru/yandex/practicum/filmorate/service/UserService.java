@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -69,7 +70,9 @@ public class UserService {
     }
 
     public UserDTO update(UserUpdateRequest request) {
-        if (request.getId() == null) throw new ValidationException("ID должен быть указан");
+        if (request.getId() == null) {
+            throw new ValidationException("ID должен быть указан");
+        }
 
         User updatedUser = UserMapper.updateUserFields(getUserIfNotNull(request.getId()), request);
 
@@ -102,12 +105,23 @@ public class UserService {
     }
 
     private void validateCreateRequest(UserCreateRequest request) {
-        if (request.getEmail() == null || request.getEmail().isEmpty()) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new ValidationException("Email должен быть указан");
         }
-        if (request.getLogin() == null || request.getLogin().isEmpty()) {
+        if (!(request.getEmail().matches("^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+.[a-zA-Z0-9_-]+"))) {
+            throw new ValidationException("Поле Email должно содержать буквы латинского алфавита, цифры и знак \"@\". "
+                    + "Пример: example@domain.com");
+        }
+        if (request.getLogin() == null || request.getLogin().isBlank()) {
             throw new ValidationException("Login должен быть указан");
         }
+        if (!(request.getLogin().matches("\\S*"))) {
+            throw new ValidationException("Поле логин не должно содержать символы пробела");
+        }
+        if (request.getBirthday() != null && request.getBirthday().isAfter(LocalDate.now())) {
+            throw new ValidationException("Значение поля дата_рождения должно быть раньше текущей даты");
+        }
+
         userStorage.getUsers()
                 .stream()
                 .map(User::getEmail)
@@ -128,7 +142,9 @@ public class UserService {
 
     private User getUserIfNotNull(long id) {
         User user = userStorage.getUserById(id);
-        if (user == null) throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        }
         return user;
     }
 }

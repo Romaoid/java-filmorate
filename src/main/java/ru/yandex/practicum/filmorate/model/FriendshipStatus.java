@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.model;
 
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+
 
 public enum FriendshipStatus {
     UNCONFIRMED("неподтверждённая"),
@@ -21,7 +22,7 @@ public enum FriendshipStatus {
         return switch (status.toLowerCase()) {
             case "неподтверждённая" -> UNCONFIRMED;
             case "подтверждённая" -> CONFIRMED;
-            default -> throw new ValidationException("enum Status");
+            default -> throw new NotFoundException("Не найден Status: " + status);
         };
     }
 }
