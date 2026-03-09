@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 
 public enum Genre {
     COMEDY("Комедия", 1),
