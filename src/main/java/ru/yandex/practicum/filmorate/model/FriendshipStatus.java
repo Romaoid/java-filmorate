@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.model;
 
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
-
 public enum FriendshipStatus {
     UNCONFIRMED("неподтверждённая"),
     CONFIRMED("подтверждённая");

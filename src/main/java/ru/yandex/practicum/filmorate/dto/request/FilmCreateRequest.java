@@ -7,7 +7,6 @@ import ru.yandex.practicum.filmorate.dto.CrutchDTO;
 import java.time.LocalDate;
 import java.util.Set;
 
-
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FilmCreateRequest {
