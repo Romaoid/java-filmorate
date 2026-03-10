@@ -16,5 +16,4 @@ public class FilmDTO {
     private Integer duration;
     private Set<GenreDTO> genres;
     private RatingDTO mpa;
-    //private List<Long> likes;
 }

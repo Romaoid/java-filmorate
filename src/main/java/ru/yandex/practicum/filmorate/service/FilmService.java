@@ -45,7 +45,7 @@ public class FilmService {
         }
         Set<Long> ratingList;
 
-        if (film.getLikes() == null) { //нужна ли проверка на null?
+        if (film.getLikes() == null) {
             ratingList = new HashSet<>();
         } else {
             ratingList = film.getLikes();

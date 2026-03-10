@@ -199,30 +199,29 @@ public class FilmDbStorage implements FilmStorage {
         final String insertQuery = "INSERT INTO film_genres(genre_id, film_id) VALUES(?, ?)";
         final String getGenreId = "SELECT g.id FROM genre AS g WHERE g.genre = ?";
 
-        Set<Integer> genresId =  Optional.of(film.getGenres())
+        Set<Integer> genresId = Optional.of(film.getGenres())
                 .map(genres -> genres.stream()
-                    .map(Genre::toString)
-                    .map(str -> getIdByQuery(getGenreId, str))
-                    .collect(Collectors.toSet()))
+                        .map(Genre::toString)
+                        .map(str -> getIdByQuery(getGenreId, str))
+                        .collect(Collectors.toSet()))
                 .get();
 
         deleteGenreFromFilm(film);
 
-        for (int genre : genresId) {
+        genresId.stream().forEach(genre -> {
             jdbc.update(connection -> {
-                    PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
-                    ps.setInt(1, genre);
-                    ps.setLong(2, film.getId());
-                    return ps;
-                }, keyHolder
+                        PreparedStatement ps = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
+                        ps.setInt(1, genre);
+                        ps.setLong(2, film.getId());
+                        return ps;
+                    }, keyHolder
             );
-
             Long id = keyHolder.getKeyAs(Long.class);
 
             if (id == null) {
                 throw new InternalServerException("Не удалось сохранить данные");
             }
-        }
+        });
     }
 
     private void deleteGenreFromFilm(Film film) {
@@ -278,7 +277,6 @@ public class FilmDbStorage implements FilmStorage {
                 "JOIN films f ON l.film_id = f.id " +
                 "WHERE f.id = ?";
         List<Long> likes = jdbc.queryForList(findLikesQuery, Long.class, film.getId());
-        //if list.length > 0 ?
         film.setLikes(new HashSet<>(likes));
     }
 }
