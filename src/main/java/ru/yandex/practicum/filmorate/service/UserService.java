@@ -1,14 +1,20 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
+import ru.yandex.practicum.filmorate.dto.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.dto.request.UserCreateRequest;
+import ru.yandex.practicum.filmorate.dto.request.UserUpdateRequest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -19,82 +25,125 @@ public class UserService {
     }
 
     public void addToFriends(Long userId, Long friendId) {
-        User user = userStorage.getUserById(userId);
-        User friend = userStorage.getUserById(friendId);
+        User user = getUserIfNotNull(userId);
+        User friend = getUserIfNotNull(friendId);
 
-        if (user.getFriends() != null && user.getFriends().contains(friend.getId())) {
+        if (user.getFriends() != null && user.getFriends().containsKey(friend.getId())) {
             throw new ValidationException("Пользователь " + friend.getLogin() + " уже добавлен в друзья");
         }
 
-        Set<Long> friendListUser1;
-        Set<Long> friendListUser2;
-
-        if (user.getFriends() == null) {
-            friendListUser1 = new HashSet<>();
+        if (friend.getFriends() != null && friend.getFriends().containsKey(userId)) {
+            userStorage.addFieldToFriendship(userId, friendId, FriendshipStatus.CONFIRMED);
+            userStorage.addFieldToFriendship(friendId, userId, FriendshipStatus.CONFIRMED);
         } else {
-            friendListUser1 = user.getFriends();
+            userStorage.addFieldToFriendship(userId, friendId, FriendshipStatus.UNCONFIRMED);
         }
-
-        if (friend.getFriends() == null) {
-            friendListUser2 = new HashSet<>();
-        } else {
-            friendListUser2 = friend.getFriends();
-        }
-
-        friendListUser1.add(friend.getId());
-        friendListUser2.add(user.getId());
-
-        user.setFriends(friendListUser1);
-        friend.setFriends(friendListUser2);
     }
 
     public void deleteFromFriends(Long userId, Long friendId) {
-        User user = userStorage.getUserById(userId);
-        User friend = userStorage.getUserById(friendId);
+        User user = getUserIfNotNull(userId);
+        User friend = getUserIfNotNull(friendId);
 
-        if (user.getFriends() != null && user.getFriends().contains(friend.getId())) {
-            Set<Long> friendList = user.getFriends();
-            friendList.remove(friend.getId());
-            friendList = friend.getFriends();
-            friendList.remove(user.getId());
+        if (user.getFriends() != null && user.getFriends().containsKey(friend.getId())) {
+            userStorage.deleteFieldFromFriendship(userId, friendId, user.getFriends().get(friendId));
         }
     }
 
-    public Collection<User> getFriends(Long userId) {
-        User user = userStorage.getUserById(userId);
+    public Collection<UserDTO> getFriends(Long userId) {
+        User user = getUserIfNotNull(userId);
 
-        return (user.getFriends() == null) ? new ArrayList<>()
+        return (user.getFriends() == null || user.getFriends().isEmpty()) ? new ArrayList<>()
                 : userStorage.getUsers().stream()
-                .filter(friend -> user.getFriends().contains(friend.getId()))
+                .filter(friend -> user.getFriends().containsKey(friend.getId()))
+                .map(UserMapper::mapToUserDto)
                 .toList();
     }
 
-    public User create(User newUser) {
-        return userStorage.create(newUser);
+    public UserDTO create(UserCreateRequest request) {
+        validateCreateRequest(request);
+
+        User user = UserMapper.mapToUser(request);
+        user = userStorage.create(user);
+
+        return UserMapper.mapToUserDto(user);
     }
 
-    public User update(User newUser) {
-        return userStorage.update(newUser);
+    public UserDTO update(UserUpdateRequest request) {
+        if (request.getId() == null) {
+            throw new ValidationException("ID должен быть указан");
+        }
+
+        User updatedUser = UserMapper.updateUserFields(getUserIfNotNull(request.getId()), request);
+
+        return UserMapper.mapToUserDto(userStorage.update(updatedUser));
     }
 
-    public Collection<User> getUsersAll() {
-        return userStorage.getUsers();
+    public Collection<UserDTO> getUsersAll() {
+        return userStorage.getUsers()
+                .stream()
+                .map(UserMapper::mapToUserDto)
+                .collect(Collectors.toList());
     }
 
-    public User getUserById(Long id) {
-        return userStorage.getUserById(id);
+    public UserDTO getUserById(Long id) {
+        return UserMapper.mapToUserDto(userStorage.getUserById(id));
     }
 
-    public Collection<User> getFriendsMutual(Long userId, Long friendId) {
-        User user = userStorage.getUserById(userId);
-        User friend = userStorage.getUserById(friendId);
+    public Collection<UserDTO> getFriendsMutual(Long userId, Long friendId) {
+        User user = getUserIfNotNull(userId);
+        User friend = getUserIfNotNull(friendId);
 
-        Collection<Long> mutualFriendsIdList = user.getFriends().stream()
-                .filter(id -> friend.getFriends().contains(id))
+        Collection<Long> mutualFriendsIdList = user.getFriends().keySet().stream()
+                .filter(id -> friend.getFriends().containsKey(id))
                 .toList();
 
         return userStorage.getUsers().stream()
                 .filter(usr -> mutualFriendsIdList.contains(usr.getId()))
+                .map(UserMapper::mapToUserDto)
                 .toList();
+    }
+
+    private void validateCreateRequest(UserCreateRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ValidationException("Email должен быть указан");
+        }
+        if (!(request.getEmail().matches("^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+.[a-zA-Z0-9_-]+"))) {
+            throw new ValidationException("Поле Email должно содержать буквы латинского алфавита, цифры и знак \"@\". "
+                    + "Пример: example@domain.com");
+        }
+        if (request.getLogin() == null || request.getLogin().isBlank()) {
+            throw new ValidationException("Login должен быть указан");
+        }
+        if (!(request.getLogin().matches("\\S*"))) {
+            throw new ValidationException("Поле логин не должно содержать символы пробела");
+        }
+        if (request.getBirthday() != null && request.getBirthday().isAfter(LocalDate.now())) {
+            throw new ValidationException("Значение поля дата_рождения должно быть раньше текущей даты");
+        }
+
+        userStorage.getUsers()
+                .stream()
+                .map(User::getEmail)
+                .filter(email -> email.equals(request.getEmail()))
+                .findFirst()
+                .ifPresent(email -> {
+                    throw new ValidationException("Email " + email + " уже зарегистрирован");
+                });
+        userStorage.getUsers()
+                .stream()
+                .map(User::getLogin)
+                .filter(login -> login.equals(request.getLogin()))
+                .findFirst()
+                .ifPresent(login -> {
+                    throw new ValidationException("Login " + login + " уже зарегистрирован");
+                });
+    }
+
+    private User getUserIfNotNull(long id) {
+        User user = userStorage.getUserById(id);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        }
+        return user;
     }
 }

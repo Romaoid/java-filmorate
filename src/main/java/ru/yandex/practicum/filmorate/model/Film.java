@@ -7,10 +7,12 @@ import java.util.Set;
 
 @Data
 public class Film {
-    Long id;
-    String name;
-    String description;
-    LocalDate releaseDate;
-    Integer duration;
-    Set<Long> likes;
+    private Long id;
+    private String name;
+    private String description;
+    private LocalDate releaseDate;
+    private Integer duration;
+    private Set<Genre> genres;
+    private Rating rating;
+    private Set<Long> likes;
 }

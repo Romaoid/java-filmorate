@@ -3,7 +3,9 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.dto.UserDTO;
+import ru.yandex.practicum.filmorate.dto.request.UserCreateRequest;
+import ru.yandex.practicum.filmorate.dto.request.UserUpdateRequest;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
@@ -20,25 +22,25 @@ public class UserController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Collection<User> findAll() {
+    public Collection<UserDTO> findAll() {
         return userService.getUsersAll();
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public User findUser(@PathVariable Long id) {
+    public UserDTO findUser(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
     @GetMapping("/{id}/friends")
     @ResponseStatus(HttpStatus.OK)
-    public Collection<User> findFriends(@PathVariable Long id) {
+    public Collection<UserDTO> findFriends(@PathVariable Long id) {
         return userService.getFriends(id);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
     @ResponseStatus(HttpStatus.OK)
-    public Collection<User> findCommonFriends(@PathVariable Long id,
+    public Collection<UserDTO> findCommonFriends(@PathVariable Long id,
                                         @PathVariable("otherId") Long friendId) {
         return userService.getFriendsMutual(id, friendId);
     }
@@ -59,15 +61,15 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public User create(@RequestBody User newUser) {
-        log.debug("Запрос на добавление нового пользователя {}", newUser);
-        return userService.create(newUser);
+    public UserDTO create(@RequestBody UserCreateRequest userRequest) {
+        log.debug("Запрос на добавление нового пользователя {}", userRequest);
+        return userService.create(userRequest);
     }
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    public User update(@RequestBody User newUser) {
-        log.debug("Запрос на редактирование пользователя {}", newUser);
-        return userService.update(newUser);
+    public UserDTO update(@RequestBody UserUpdateRequest request) {
+        log.debug("Запрос на редактирование пользователя {}", request);
+        return userService.update(request);
     }
 }
